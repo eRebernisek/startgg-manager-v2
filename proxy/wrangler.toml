@@ -1,0 +1,5 @@
+name = "startgg-manager-v2-proxy"
+main = "startgg-web-proxy.mjs"
+compatibility_date = "2026-10-01"
+# start.gg is on Cloudflare; without this, Worker→start.gg subrequests can fail with error 1042.
+compatibility_flags = ["global_fetch_strictly_public"]

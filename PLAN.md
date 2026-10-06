@@ -8,8 +8,8 @@ Browser + Capacitor Android app to view start.gg brackets and (with an admin per
 
 | Topic | Choice |
 | --- | --- |
-| Auth | Personal API token only (OAuth needs a client secret; cannot ship in-app). |
-| Token-less web | **Not supported in production.** Official API requires a token; the unofficial `www.start.gg/api/-/gql` endpoint is CORS-locked. Dev `ng serve` proxies `/sgg-public` for experiments; Android may call it via CapacitorHttp. Prefer pasting a personal token for all web use. |
+| Auth | Personal API token for **edits** (OAuth needs a client secret; cannot ship in-app). |
+| Token-less view | **Supported.** Same as TSH: unofficial `www.start.gg/api/-/gql` with `client-version` only (no API key). Android calls it natively; `ng serve` uses `/sgg-public`; GitHub Pages / static web uses the CORS forwarder in `proxy/` (`DEFAULT_PUBLIC_PROXY_URL`, overridable in Settings). Official `api.start.gg` still requires a personal token — never bake one into the repo. Mutations stay gated on a personal token + admin. |
 | UI | Custom dark esports theme (CSS variables in `styles.scss`) + Angular CDK dialog / drag-drop. |
 | GraphQL typing | Hand-written models + string documents validated against `schema/startgg.graphql` in Vitest. |
 | Caching | In-memory query cache + de-dupe + rate-limit queue (~65/min) in `StartggClient`. |

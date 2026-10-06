@@ -1,6 +1,7 @@
 import { Injectable, inject, isDevMode } from '@angular/core';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { WebSessionService } from '../web-session.service';
+import { DEFAULT_PUBLIC_PROXY_URL } from './public-proxy';
 import { StartggError } from './startgg-client';
 
 export const WEB_ENDPOINT = 'https://www.start.gg/api/-/gql';
@@ -41,8 +42,15 @@ export class StartggWebClient {
 
   transport(): WebTransportKind {
     if (Capacitor.isNativePlatform()) return 'native';
-    if (this.web.proxyUrl()) return 'proxy';
-    return isDevMode() ? 'dev-proxy' : 'none';
+    // Prefer the ng serve proxy locally unless the user set an explicit Worker URL.
+    if (isDevMode() && !this.web.proxyUrl()) return 'dev-proxy';
+    if (this.web.proxyUrl() || DEFAULT_PUBLIC_PROXY_URL) return 'proxy';
+    return 'none';
+  }
+
+  /** Effective proxy URL: Settings override, else the shipped default Worker. */
+  proxyEndpoint(): string {
+    return this.web.proxyUrl() ?? DEFAULT_PUBLIC_PROXY_URL;
   }
 
   /** Mutations need a website session; queries are sent anonymously when there is none. */
@@ -110,7 +118,7 @@ export class StartggWebClient {
           'network',
         );
       }
-      const url = kind === 'proxy' ? this.web.proxyUrl()! : DEV_WEB_PROXY;
+      const url = kind === 'proxy' ? this.proxyEndpoint() : DEV_WEB_PROXY;
       const res = await fetch(url, {
         method: 'POST',
         headers: { ...base, ...(session ? { [SESSION_HEADER]: session } : {}) },

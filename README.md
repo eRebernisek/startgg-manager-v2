@@ -20,25 +20,19 @@ npm test           # Vitest via Angular unit-test builder
 npm run build      # static files in dist/startgg-manager-v2/browser
 ```
 
-## Live site (GitHub Pages)
-
-**https://erebernisek.github.io/startgg-manager-v2/**
-
-Every push to `main` builds and deploys via GitHub Actions. Open Settings in the app and paste a [personal API token](https://start.gg/admin/profile/developer).
-
 ## Deploy — static web hosting
 
-Production builds **require a personal token** in the browser. The official API allows CORS `*`; the unofficial website GraphQL endpoint does not.
+**Viewing** brackets/events/sets works without a personal token (website GraphQL via the CORS proxy in `proxy/`). **Editing** still needs your own token in Settings.
 
 ```bash
-npm run build          # local / Capacitor (base href /)
-npm run build:pages    # GitHub Pages (base href /startgg-manager-v2/)
+npm run build
 # Upload dist/startgg-manager-v2/browser to any static host
+# (Netlify, Cloudflare Pages, S3, nginx, GitHub Pages, …)
 ```
 
 Hash routing (`#/…`) is enabled, so no server rewrite rules are needed.
 
-Optional: for local experiments without a token, `npm start` proxies `/sgg-public` → `www.start.gg/api/-/gql`. Do **not** rely on that for production.
+GitHub Pages: see [GITHUB_PAGES.md](./GITHUB_PAGES.md). Local token-less reads also work via `npm start` → `/sgg-public`.
 
 ## Deploy — Android APK (Capacitor)
 
@@ -61,8 +55,8 @@ App id: `gg.startmanager.app`. On Android, CapacitorHttp is enabled so an experi
 | --- | --- |
 | Token + admin | Tournament picker → event → bracket / sets / entrants / seeding. Report, update, reset, call, start sets. Change seeds. |
 | Token, not admin | Full read of public events; mutations return permission errors. |
-| No token (web prod) | Blocked — add a token in Settings. |
-| No token (Android / `ng serve`) | Experimental read-only via unofficial endpoint. |
+| No token (web) | View-only via website GraphQL + CORS proxy (`proxy/`). Paste a tournament/event URL on Home. |
+| No token (Android / `ng serve`) | View-only via website GraphQL (native HTTP or `/sgg-public`). |
 
 ### Set reporting rules
 
@@ -92,7 +86,7 @@ The **Entrants** tab lists event attendees (search, count, avatar, tag/prefix, s
 2. **Production web** — deploy the tiny forwarder in [`proxy/startgg-web-proxy.mjs`](./proxy/startgg-web-proxy.mjs) (Cloudflare Worker, Netlify, etc.) and paste its URL in **Settings → Proxy URL**.
 3. **Android** — Capacitor native HTTP calls start.gg directly; no proxy needed.
 
-Paste the **`gg_session`** cookie in **Settings → start.gg website session** (DevTools → Application → Cookies → `www.start.gg`). The personal API token is still required for brackets, sets, and seeding.
+Paste the **`gg_session`** cookie in **Settings → start.gg website session** (DevTools → Application → Cookies → `www.start.gg`). Brackets/sets/seeding view without a personal API token; editing those still needs the token.
 
 If add/rename/remove is blocked, use **Manage on start.gg ↗** (`https://www.start.gg/admin/tournament/{slug}/attendees`).
 

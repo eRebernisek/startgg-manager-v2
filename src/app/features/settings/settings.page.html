@@ -6,8 +6,9 @@
     <p class="muted small">
       Create a personal token at
       <a href="https://start.gg/admin/profile/developer" target="_blank" rel="noopener">
-        start.gg → Developer Settings</a>. It is stored only on this device. Tournaments where your account is an
-      admin can be edited; everything else is read-only.
+        start.gg → Developer Settings</a>. Required to <strong>edit</strong> (report sets, seeding, …). Viewing
+      brackets works without it. Stored only on this device. Tournaments where your account is an admin can be edited;
+      everything else stays read-only.
     </p>
     <form class="row" (ngSubmit)="save()">
       <input
@@ -87,8 +88,8 @@
           (blur)="saveProxy()"
         />
         <span class="small">
-          Browsers cannot call start.gg’s website API directly (its CORS only allows start.gg). Deploy the small proxy
-          in <code>proxy/</code> (see README) and paste its URL. The Android app does not need it.
+          Optional override. By default the app uses a free CORS proxy (see <code>proxy/</code>) so GitHub Pages can
+          view brackets without a token. Paste your own Worker URL here if you redeploy it. Android does not need it.
         </span>
       </label>
     } @else {
@@ -113,10 +114,10 @@
   <section class="card stack small">
     <h2>Without a token</h2>
     <p class="muted">
-      Production web builds require a personal API token — the official GraphQL API authenticates every request, and the
-      unofficial website endpoint blocks browser CORS. On Android, Capacitor can call the website endpoint experimentally
-      with no token (read-only). During local <code>npm start</code>, a same-origin proxy at <code>/sgg-public</code>
-      is available for the same experiment.
+      View-only mode uses start.gg’s website GraphQL (same approach as TournamentStreamHelper) — no personal API token
+      and no shared API key. Browsers cannot call that endpoint directly (CORS), so production web builds go through
+      the small forwarder in <code>proxy/</code>. Android and local <code>npm start</code> (<code>/sgg-public</code>)
+      talk to it without that Worker. Editing still needs your personal API token (and admin rights).
     </p>
   </section>
 </div>

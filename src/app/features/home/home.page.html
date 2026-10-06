@@ -4,8 +4,9 @@
     <section class="card stack">
       <h2>View a bracket</h2>
       <p class="muted small">
-        Paste any start.gg tournament, event or bracket link. A personal API token (Settings) is required in the browser
-        production build. Editing unlocks automatically when your token is an admin of that tournament.
+        Paste any start.gg tournament, event or bracket link (for example
+        <code>https://www.start.gg/tournament/…/event/…</code>). Viewing works without a token. Add a personal API
+        token in Settings to edit when you are an admin of that tournament.
       </p>
       <form class="stack" (ngSubmit)="open()">
         <input

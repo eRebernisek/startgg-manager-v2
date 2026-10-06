@@ -1,15 +1,18 @@
 /**
- * Optional proxy for the web build's attendee admin (add / rename / remove). start.gg's website API only allows
- * CORS from https://www.start.gg and browsers cannot send its `gg_session` cookie cross-site, so the app sends the
- * session in `X-Startgg-Session` and this proxy forwards it as the cookie.
+ * Optional CORS proxy for the web build. start.gg's website API only allows CORS from
+ * https://www.start.gg, so browsers on GitHub Pages (and other static hosts) cannot call it
+ * directly. This Worker forwards POSTs to https://www.start.gg/api/-/gql with no secrets stored.
  *
- * - Forwards only POST requests, only to https://www.start.gg/api/-/gql (the target is fixed, not taken from input).
+ * Used for:
+ * - Token-less **view** (anonymous GraphQL, same approach as TournamentStreamHelper)
+ * - Attendee admin: the app sends `gg_session` in `X-Startgg-Session`; this turns it into the cookie
+ *
+ * - Forwards only POST requests; the upstream URL is fixed (not taken from input).
  * - Stores and logs nothing; the session only lives for the duration of the request.
- * - ALLOWED_ORIGINS (comma-separated, optional) restricts which app origins may use it; default allows any origin,
- *   which is safe only because every request must carry its own session.
+ * - ALLOWED_ORIGINS (comma-separated, optional) restricts which app origins may use it; default allows any origin.
  *
- * Cloudflare Workers: `npx wrangler deploy proxy/startgg-web-proxy.mjs --name startgg-proxy --compatibility-date 2026-10-01`
- * Any runtime with the Fetch API (Deno Deploy, Vercel/Netlify edge) can call `handle(request, env)`.
+ * Deploy: `npx wrangler deploy --config proxy/wrangler.toml`
+ * Temporary (claim within 60m): `npx wrangler deploy --temporary --config proxy/wrangler.toml`
  */
 const TARGET = 'https://www.start.gg/api/-/gql';
 const SESSION_RE = /^[\w.%-]{10,512}$/;

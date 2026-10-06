@@ -19,6 +19,13 @@ describe('parseBracketUrl', () => {
     });
   });
 
+  it('parses tournament/event URLs with a trailing slash (common paste)', () => {
+    expect(parseBracketUrl('https://www.start.gg/tournament/ceo-2026/event/2xko-mixed-2/')).toEqual({
+      tournamentSlug: 'ceo-2026',
+      eventSlug: '2xko-mixed-2',
+    });
+  });
+
   it('parses phase-only bracket URLs and legacy smash.gg', () => {
     expect(parseBracketUrl('https://smash.gg/tournament/x/event/y/brackets/123')).toEqual({
       tournamentSlug: 'x',

@@ -1,12 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { AuthService } from '../auth.service';
+import { WebSessionService } from '../web-session.service';
+import { DEFAULT_PUBLIC_PROXY_URL } from './public-proxy';
 
 export const OFFICIAL_ENDPOINT = 'https://api.start.gg/gql/alpha';
 /**
- * Unofficial website endpoint. CORS is locked to start.gg origins, so production
- * web builds must use a personal token against the official API. Android can call
- * this directly via CapacitorHttp when no token is set (experimental).
+ * Unofficial website endpoint used for token-less reads (same approach as TournamentStreamHelper).
+ * CORS is locked to start.gg origins, so browsers need a same-origin or hosted proxy
+ * (`DEFAULT_PUBLIC_PROXY_URL` / Settings → Proxy URL / `ng serve` `/sgg-public`).
+ * Android can call it directly via CapacitorHttp.
  */
 export const PUBLIC_ENDPOINT_NATIVE = 'https://www.start.gg/api/-/gql';
 /** Dev-server proxy path only — see proxy.conf.mjs. Not available in static deploys. */
@@ -54,6 +57,7 @@ const MAX_CONCURRENCY = 3;
 @Injectable({ providedIn: 'root' })
 export class StartggClient {
   private readonly auth = inject(AuthService);
+  private readonly web = inject(WebSessionService);
   private readonly cache = new Map<string, CacheEntry>();
   private readonly inflight = new Map<string, Promise<unknown>>();
   private readonly timestamps: number[] = [];
@@ -117,20 +121,24 @@ export class StartggClient {
     opts: { isMutation?: boolean; signal?: AbortSignal },
   ): Promise<T> {
     const token = this.auth.token();
-    const usePublic = !token;
-    if (usePublic && !Capacitor.isNativePlatform() && !isDevProxyAvailable()) {
+    if (!token && opts.isMutation) {
       throw new StartggError(
-        'A start.gg API token is required in the browser. Add one in Settings.',
+        'Editing requires a start.gg API token. Add one in Settings.',
         'auth',
+      );
+    }
+
+    const publicUrl = token ? null : this.resolvePublicEndpoint();
+    if (!token && !publicUrl) {
+      throw new StartggError(
+        'Cannot load start.gg without a token (browser CORS). Deploy proxy/ and set its URL in Settings, or add an API token.',
+        'network',
       );
     }
 
     const [url, headers] = token
       ? [OFFICIAL_ENDPOINT, { Authorization: `Bearer ${token}` }]
-      : [
-          Capacitor.isNativePlatform() ? PUBLIC_ENDPOINT_NATIVE : PUBLIC_ENDPOINT_WEB,
-          { 'client-version': PUBLIC_CLIENT_VERSION },
-        ];
+      : [publicUrl!, { 'client-version': PUBLIC_CLIENT_VERSION }];
 
     for (let attempt = 0; ; attempt++) {
       const controller = new AbortController();
@@ -159,7 +167,7 @@ export class StartggClient {
         throw new StartggError(
           token
             ? 'Could not reach start.gg. Check your connection.'
-            : 'Could not reach start.gg without a token. Add an API token in Settings.',
+            : 'Could not reach start.gg in view-only mode. Check your connection, or add an API token in Settings.',
           'network',
         );
       } finally {
@@ -182,13 +190,23 @@ export class StartggClient {
         throw new StartggError('start.gg rate limit reached, try again in a minute.', 'rateLimit');
       }
 
+      // Website API answers `data: []` for rejected admin mutations when there is no session.
+      if (!token && Array.isArray((body as { data?: unknown }).data)) {
+        throw new StartggError(
+          opts.isMutation
+            ? 'Editing requires a start.gg API token. Add one in Settings.'
+            : 'start.gg returned no data.',
+          opts.isMutation ? 'auth' : 'graphql',
+        );
+      }
+
       if (body.success === false || res.status === 401 || res.status === 400) {
         const msg = body.message ?? `Request failed (HTTP ${res.status}).`;
         if (isRateLimitMessage(msg)) {
           throw new StartggError(msg, 'rateLimit');
         }
         if (res.status === 401 || /token|auth|authentication/i.test(msg)) {
-          this.auth.notifyAuthError();
+          if (token) this.auth.notifyAuthError();
           throw new StartggError(msg, 'auth');
         }
         throw new StartggError(msg, 'graphql');
@@ -259,6 +277,13 @@ export class StartggClient {
       const wait = Math.max(50, RATE_WINDOW_MS - (Date.now() - (this.timestamps[0] ?? Date.now())));
       setTimeout(() => this.pump(), wait);
     }
+  }
+
+  /** Token-less read path: native → website API; localhost → ng serve proxy; else hosted CORS proxy. */
+  private resolvePublicEndpoint(): string | null {
+    if (Capacitor.isNativePlatform()) return PUBLIC_ENDPOINT_NATIVE;
+    if (isDevProxyAvailable()) return PUBLIC_ENDPOINT_WEB;
+    return this.web.proxyUrl() ?? DEFAULT_PUBLIC_PROXY_URL;
   }
 }
 

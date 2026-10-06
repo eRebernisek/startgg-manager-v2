@@ -82,10 +82,23 @@ Site URL pattern:
 
 ## After it is live
 
-1. Open the Pages URL.
-2. Go to **Settings** in the app.
-3. Paste a [start.gg personal API token](https://start.gg/admin/profile/developer).
-4. Use brackets, sets, and seeding as usual.
+1. Open the Pages URL — you can paste a start.gg event URL and **view** brackets without a token.
+2. To **edit**, go to **Settings** and paste a [start.gg personal API token](https://start.gg/admin/profile/developer).
+3. Editing unlocks when that token’s account is an admin of the tournament.
+
+## Token-less view (CORS proxy)
+
+The official API requires a personal token. TSH-style token-less reads use `www.start.gg/api/-/gql`, which browsers cannot call from `github.io` (CORS). The Worker in [`proxy/`](./proxy/) forwards POSTs with no secrets.
+
+Default Worker URL is baked into the app (`DEFAULT_PUBLIC_PROXY_URL`). Redeploy:
+
+```bash
+npx wrangler deploy --config proxy/wrangler.toml
+# or, without a Cloudflare login (temporary; claim within 60 minutes):
+npx wrangler deploy --temporary --config proxy/wrangler.toml
+```
+
+Override the URL anytime in **Settings → Proxy URL**.
 
 ## Redeploying
 
@@ -96,7 +109,8 @@ Push to `main`. The workflow rebuilds and redeploys automatically. No extra fee.
 | Topic | Detail |
 | --- | --- |
 | Cost | Free for public repos |
-| Entrants admin (add/rename/remove) | Needs a separate proxy (e.g. Cloudflare Worker); browser CORS blocks the website API |
+| View without token | Yes — website GraphQL via `proxy/` Worker |
+| Entrants admin (add/rename/remove) | Needs `gg_session` (+ same proxy); browser CORS blocks the website API |
 | Secrets | Never bake the API token into the build; users paste it in Settings |
 | Android APK | Use `npm run build` + Capacitor; do not use `baseHref` `/startgg-manager-v2/` for the app |
 

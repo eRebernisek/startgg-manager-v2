@@ -59,7 +59,7 @@ export class EventPage {
   protected readOnlyReason(): string {
     return this.auth.hasToken()
       ? 'Your token is not an admin of this tournament.'
-      : 'No API token set — add one in Settings to edit your tournaments.';
+      : 'View-only — add an API token in Settings to edit when you are an admin.';
   }
 
   protected startggUrl(): string {
