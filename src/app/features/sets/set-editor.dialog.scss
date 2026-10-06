@@ -1,7 +1,23 @@
 .versus {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   gap: 0.5rem;
+  align-items: start;
+}
+
+.set-score {
+  flex: none;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  text-align: center;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: var(--surface-3);
+  white-space: nowrap;
+  line-height: 1.2;
+  /* Optically center against the .side cards, not the Player info links below */
+  margin-top: 1.15rem;
 }
 
 .side-wrap {
@@ -54,16 +70,7 @@
 .games-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
-}
-
-.score-pill {
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  background: var(--surface-3);
 }
 
 .game-row {
@@ -80,37 +87,43 @@
   gap: 0.5rem;
 }
 
+/* [W] [name] [char]  vs.  [char] [name] [W] */
 .game-entrants {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto;
   gap: 0.35rem;
   align-items: center;
-}
-
-.game-entrant {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
   min-width: 0;
 }
 
 .entrant-name {
   font-size: 0.8rem;
-  text-align: center;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  min-width: 0;
+
+  &--right {
+    text-align: right;
+  }
 }
 
-.vs {
+.game-vs {
+  flex: none;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--muted);
   text-align: center;
+  white-space: nowrap;
+  line-height: 1.2;
+  padding: 0 0.15rem;
 }
 
 .char-btn {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   padding: 0;
   border-radius: 10px;
   justify-content: center;
@@ -133,14 +146,53 @@
 }
 
 .win-btn {
-  min-width: 2.4rem;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
   justify-content: center;
   font-weight: 800;
+  flex: none;
 
   &.winner {
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
+  }
+}
+
+@media (max-width: 420px) {
+  .versus {
+    gap: 0.35rem;
+  }
+
+  .set-score {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.4rem;
+  }
+
+  .game-entrants {
+    gap: 0.25rem;
+  }
+
+  .entrant-name {
+    font-size: 0.72rem;
+  }
+
+  .game-vs {
+    font-size: 0.72rem;
+  }
+
+  .char-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .win-btn {
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
   }
 }
 

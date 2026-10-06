@@ -35,6 +35,9 @@
       <div class="muted small">Set winner</div>
       <div class="versus" role="radiogroup" aria-label="Winner">
         @for (side of sides; track side) {
+          @if (side === 1) {
+            <div class="set-score" aria-label="Set score">{{ gameScore()[0] }} – {{ gameScore()[1] }}</div>
+          }
           <div class="side-wrap">
             <button
               type="button"
@@ -62,7 +65,6 @@
 
       <div class="games-head">
         <div class="muted small">Games (up to {{ maxGames }})</div>
-        <span class="score-pill" aria-label="Game wins">{{ gameScore()[0] }} – {{ gameScore()[1] }}</span>
       </div>
 
       <div class="games stack">
@@ -75,39 +77,64 @@
               }
             </div>
 
-            <div class="game-entrants">
-              @for (side of sides; track side) {
-                <div class="game-entrant">
-                  <button
-                    type="button"
-                    class="char-btn"
-                    [class.selected]="!!characterFor(game, side)"
-                    [disabled]="!canMutate() || busy() || !characters().length"
-                    [attr.title]="characterFor(game, side)?.name ?? 'Select character'"
-                    (click)="openCharacterPicker(i, side)"
-                  >
-                    @if (iconUrl(characterFor(game, side)); as src) {
-                      <img [src]="src" [alt]="characterFor(game, side)?.name ?? ''" />
-                    } @else {
-                      <span class="char-placeholder">?</span>
-                    }
-                  </button>
-                  <span class="entrant-name">{{ shortName(entrants()[side]) }}</span>
-                  <button
-                    type="button"
-                    class="win-btn"
-                    [class.winner]="sameWinner(game.winnerId, side)"
-                    [disabled]="!canMutate() || busy()"
-                    (click)="setGameWinner(i, side)"
-                    title="Mark game winner"
-                  >
-                    W
-                  </button>
-                </div>
-                @if (side === 0) {
-                  <span class="vs muted small">vs</span>
+            <div class="game-entrants" aria-label="Game {{ game.orderNum }} entrants">
+              <!-- Left: [W] [name] [char] -->
+              <button
+                type="button"
+                class="win-btn"
+                [class.winner]="sameWinner(game.winnerId, 0)"
+                [disabled]="!canMutate() || busy()"
+                (click)="setGameWinner(i, 0)"
+                title="Mark game winner"
+              >
+                W
+              </button>
+              <span class="entrant-name" [title]="shortName(entrants()[0])">{{ shortName(entrants()[0]) }}</span>
+              <button
+                type="button"
+                class="char-btn"
+                [class.selected]="!!characterFor(game, 0)"
+                [disabled]="!canMutate() || busy() || !characters().length"
+                [attr.title]="characterFor(game, 0)?.name ?? 'Select character'"
+                (click)="openCharacterPicker(i, 0)"
+              >
+                @if (iconUrl(characterFor(game, 0)); as src) {
+                  <img [src]="src" [alt]="characterFor(game, 0)?.name ?? ''" />
+                } @else {
+                  <span class="char-placeholder">?</span>
                 }
-              }
+              </button>
+
+              <span class="game-vs" aria-hidden="true">vs.</span>
+
+              <!-- Right: [char] [name] [W] -->
+              <button
+                type="button"
+                class="char-btn"
+                [class.selected]="!!characterFor(game, 1)"
+                [disabled]="!canMutate() || busy() || !characters().length"
+                [attr.title]="characterFor(game, 1)?.name ?? 'Select character'"
+                (click)="openCharacterPicker(i, 1)"
+              >
+                @if (iconUrl(characterFor(game, 1)); as src) {
+                  <img [src]="src" [alt]="characterFor(game, 1)?.name ?? ''" />
+                } @else {
+                  <span class="char-placeholder">?</span>
+                }
+              </button>
+              <span class="entrant-name entrant-name--right" [title]="shortName(entrants()[1])">{{
+                shortName(entrants()[1])
+              }}</span>
+              <button
+                type="button"
+                class="win-btn"
+                [class.winner]="sameWinner(game.winnerId, 1)"
+                [disabled]="!canMutate() || busy()"
+                (click)="setGameWinner(i, 1)"
+                title="Mark game winner"
+              >
+                W
+              </button>
             </div>
           </div>
         }

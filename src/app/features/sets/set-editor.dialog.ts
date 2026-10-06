@@ -16,9 +16,11 @@ import {
   toGameData,
 } from '../../core/set-games';
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
+import { askConfirm } from '../../shared/confirm.dialog';
 import { errorMessage, setStateLabel } from '../../shared/display';
 import { EventStore } from '../event/event.store';
 import { openPlayerDialog } from '../players/player.dialog';
+import { askResetSet } from './reset-set.dialog';
 
 export type Side = 0 | 1;
 
@@ -226,7 +228,7 @@ export class SetEditorDialog implements OnInit {
   }
 
   /** Submit / complete the set with an overall winner (+ optional games). */
-  protected submit(): Promise<void> {
+  protected async submit(): Promise<void> {
     const s = this.set();
     if (!s) return Promise.resolve();
     const [e0, e1] = this.entrants();
@@ -252,13 +254,14 @@ export class SetEditorDialog implements OnInit {
     if (plan.action === 'none') return Promise.resolve();
 
     if (plan.action === 'resetThenReport' && plan.warnDependent) {
-      if (
-        !confirm(
-          'Changing the winner will reset this set and any dependent sets that already advanced. Continue?',
-        )
-      ) {
-        return Promise.resolve();
-      }
+      const ok = await askConfirm(this.dialog, {
+        title: 'Change winner?',
+        body: 'Changing the winner will reset this set and any dependent sets that already advanced.',
+        detail: 'Those later results will be cleared on start.gg. This cannot be undone.',
+        confirmLabel: 'Continue',
+        danger: true,
+      });
+      if (!ok) return Promise.resolve();
     }
 
     return this.mutate('Result submitted.', async () => {
@@ -281,10 +284,10 @@ export class SetEditorDialog implements OnInit {
     return this.mutate('Set marked in progress.', () => this.api.markSetInProgress(this.setId));
   }
 
-  protected reset(): Promise<void> {
-    if (!confirm('Reset this set? The reported result will be cleared.')) return Promise.resolve();
-    const dependents = confirm('Also reset sets that depend on this result? (OK = yes, Cancel = only this set)');
-    return this.mutate('Set reset.', () => this.api.resetSet(this.setId, dependents));
+  protected async reset(): Promise<void> {
+    const choice = await askResetSet(this.dialog);
+    if (!choice) return;
+    return this.mutate('Set reset.', () => this.api.resetSet(this.setId, choice === 'dependents'));
   }
 
   private async loadCharacters(): Promise<void> {
