@@ -20,14 +20,20 @@ npm test           # Vitest via Angular unit-test builder
 npm run build      # static files in dist/startgg-manager-v2/browser
 ```
 
+## Live site (GitHub Pages)
+
+**https://erebernisek.github.io/startgg-manager-v2/**
+
+Every push to `main` builds and deploys via GitHub Actions. Open Settings in the app and paste a [personal API token](https://start.gg/admin/profile/developer).
+
 ## Deploy — static web hosting
 
 Production builds **require a personal token** in the browser. The official API allows CORS `*`; the unofficial website GraphQL endpoint does not.
 
 ```bash
-npm run build
+npm run build          # local / Capacitor (base href /)
+npm run build:pages    # GitHub Pages (base href /startgg-manager-v2/)
 # Upload dist/startgg-manager-v2/browser to any static host
-# (Netlify, Cloudflare Pages, S3, nginx, GitHub Pages, …)
 ```
 
 Hash routing (`#/…`) is enabled, so no server rewrite rules are needed.
