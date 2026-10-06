@@ -1,0 +1,116 @@
+:host {
+  display: block;
+}
+
+.scroller {
+  overflow: auto;
+  padding: 0.5rem 0.5rem 1rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.canvas {
+  position: relative;
+
+  svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  path {
+    fill: none;
+    stroke: var(--surface-3);
+    stroke-width: 2;
+  }
+
+  app-set-box {
+    position: absolute;
+  }
+}
+
+.side-title {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+
+.col-title {
+  position: absolute;
+  top: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.static {
+    position: static;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.round-cols {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.round-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 210px;
+  flex: none;
+}
+
+.rr {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th,
+  td {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--line);
+    text-align: center;
+  }
+
+  tbody th {
+    text-align: left;
+    max-width: 200px;
+  }
+
+  .rr-col {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .self {
+    background: var(--surface-3);
+  }
+
+  .cell {
+    cursor: pointer;
+
+    &:hover {
+      outline: 1px solid var(--accent-2);
+    }
+  }
+
+  .won {
+    background: color-mix(in srgb, var(--ok) 22%, transparent);
+  }
+
+  .lost {
+    background: color-mix(in srgb, var(--danger) 18%, transparent);
+  }
+
+  .wl {
+    font-weight: 700;
+  }
+}

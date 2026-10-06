@@ -1,0 +1,97 @@
+<div class="dialog">
+  <header>
+    <div class="spacer">
+      <strong>{{ set()?.fullRoundText ?? 'Set' }}</strong>
+      @if (set()?.identifier) {
+        <span class="muted"> · {{ set()?.identifier }}</span>
+      }
+      @if (set(); as s) {
+        <div class="muted small">
+          {{ stateLabel(s.state) }}
+          @if (s.station?.number) {
+            · Station {{ s.station?.number }}
+          }
+          @if (s.stream?.streamName) {
+            · Stream {{ s.stream?.streamName }}
+          }
+        </div>
+      }
+    </div>
+    <button class="ghost" (click)="ref.close()" aria-label="Close">✕</button>
+  </header>
+
+  <div class="body stack">
+    @if (busy() && !set()) {
+      <div class="spinner"></div>
+    }
+    @if (error()) {
+      <div class="alert error">{{ error() }}</div>
+    }
+    @if (notice()) {
+      <div class="alert info">{{ notice() }}</div>
+    }
+
+    @if (set()) {
+      <div class="muted small">Who won?</div>
+      <div class="versus" role="radiogroup" aria-label="Winner">
+        @for (side of sides; track side) {
+          <div class="side-wrap">
+            <button
+              type="button"
+              class="side"
+              role="radio"
+              [attr.aria-checked]="winner() === side"
+              [class.winner]="winner() === side"
+              [class.loser]="winner() !== null && winner() !== side"
+              [disabled]="!canMutate() || busy()"
+              (click)="winner.set(side)"
+            >
+              <app-entrant-chip [entrant]="entrants()[side]" [size]="40" />
+              @if (winner() === side) {
+                <span class="result w">W</span>
+              } @else if (winner() !== null) {
+                <span class="result" [class.dq]="dq()">{{ dq() ? 'DQ' : 'L' }}</span>
+              }
+            </button>
+            @if (entrants()[side]?.participants?.[0]?.player?.id) {
+              <button type="button" class="ghost sm" (click)="openPlayer(entrants()[side])">Player info</button>
+            }
+          </div>
+        }
+      </div>
+
+      @if (preview()) {
+        <div class="alert info small">
+          This bracket has not been started on start.gg yet, so its sets cannot be reported. Start the bracket on
+          start.gg first.
+        </div>
+      } @else if (!store.canEdit()) {
+        <div class="alert small">Read-only: your token is not an admin of this tournament.</div>
+      } @else {
+        <label class="row small dq-toggle">
+          <input
+            type="checkbox"
+            [checked]="dq()"
+            [disabled]="!canMutate() || busy()"
+            (change)="dq.set($any($event.target).checked)"
+          />
+          Loser was disqualified (DQ)
+        </label>
+      }
+    }
+  </div>
+
+  @if (set() && canMutate()) {
+    <footer>
+      <button class="danger sm" (click)="reset()" [disabled]="busy()">Reset</button>
+      @if (!completed()) {
+        <button class="sm" (click)="markCalled()" [disabled]="busy()">Call</button>
+        <button class="sm" (click)="markInProgress()" [disabled]="busy()">Start</button>
+      }
+      <span class="spacer"></span>
+      <button class="primary" (click)="submit()" [disabled]="busy() || unchanged()">
+        {{ completed() ? 'Update result' : 'Submit result' }}
+      </button>
+    </footer>
+  }
+</div>

@@ -1,0 +1,164 @@
+<section class="attendees stack">
+  <div class="att-head">
+    <h2 class="spacer">Attendees</h2>
+    @if (store.canEdit()) {
+      <button type="button" class="primary" (click)="add()">Add Attendee</button>
+    }
+    <a
+      class="btn hide-sm"
+      [href]="attendeesUrl()"
+      target="_blank"
+      rel="noopener"
+      title="Open the start.gg admin Attendees page"
+    >
+      start.gg ↗
+    </a>
+  </div>
+
+  @if (store.canEdit() && blockedReason()) {
+    <div class="alert info small row">
+      <span class="spacer">
+        @if (transportMissing()) {
+          To add, rename or remove attendees in the browser, set a proxy URL in Settings (or use the Android app).
+        } @else {
+          To add, rename or remove attendees, add your start.gg website session in Settings.
+        }
+      </span>
+      <a class="btn sm" routerLink="/settings">Settings</a>
+    </div>
+  }
+
+  <div class="att-tools">
+    <input
+      class="spacer"
+      type="search"
+      placeholder="Search"
+      aria-label="Search attendees"
+      [ngModel]="query()"
+      (ngModelChange)="onQuery($event)"
+    />
+    <button
+      type="button"
+      class="filters-btn"
+      [class.active]="filter() !== 'all'"
+      [attr.aria-expanded]="showFilters()"
+      (click)="showFilters.set(!showFilters())"
+    >
+      <span aria-hidden="true">☰</span> Filters
+    </button>
+  </div>
+
+  @if (showFilters()) {
+    <div class="filter-chips" role="radiogroup" aria-label="Filter attendees">
+      @for (f of [
+        { id: 'all', label: 'All' },
+        { id: 'account', label: 'With account' },
+        { id: 'noAccount', label: 'Without account' },
+        { id: 'unseeded', label: 'Not seeded' }
+      ]; track f.id) {
+        <button
+          type="button"
+          class="sm chip"
+          role="radio"
+          [attr.aria-checked]="filter() === f.id"
+          [class.active]="filter() === f.id"
+          (click)="filter.set($any(f.id))"
+        >
+          {{ f.label }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="att-count muted small" aria-live="polite">{{ countText() }}</div>
+
+  @if (error()) {
+    <div class="alert error">{{ error() }}</div>
+  }
+
+  <div class="card att-table">
+    <div class="att-row att-header" aria-hidden="true">
+      <span>Attendee</span>
+      <span class="col-loc">Location</span>
+      <span class="col-seed">Seed</span>
+      <span></span>
+    </div>
+    @for (r of visible(); track r.entrantId) {
+      <div class="att-row">
+        <button type="button" class="who" (click)="viewPlayer(r)" [disabled]="r.playerId == null">
+          <app-avatar class="round" [src]="r.avatar" [name]="r.tag" [size]="44" />
+          <span class="names">
+            <span class="tag">
+              @if (r.prefix) {
+                <span class="prefix">{{ r.prefix }}</span>
+              }
+              {{ r.tag }}
+            </span>
+            <span class="real muted small">
+              @if (r.realName) {
+                {{ r.realName }}
+              } @else if (r.noAccount) {
+                No start.gg account
+              }
+            </span>
+          </span>
+        </button>
+        <span class="col-loc small">{{ r.country }}</span>
+        <span class="col-seed">
+          @if (r.seed != null) {
+            <span class="badge seed" [title]="'Seed ' + r.seed">#{{ r.seed }}</span>
+          } @else {
+            <span class="badge warn" title="Not placed in the bracket">Unseeded</span>
+          }
+        </span>
+        <button
+          type="button"
+          class="ghost kebab"
+          [attr.aria-label]="'Actions for ' + label(r.tag, r.prefix)"
+          [cdkMenuTriggerFor]="rowMenu"
+          [cdkMenuTriggerData]="{ $implicit: r }"
+        >
+          ⋮
+        </button>
+      </div>
+    } @empty {
+      @if (!loading()) {
+        <p class="muted empty">
+          {{ query() ? 'No attendees match “' + query() + '”.' : 'No attendees in this event yet.' }}
+        </p>
+      }
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="spinner"></div>
+  } @else if (page() < totalPages()) {
+    <button type="button" (click)="loadMore()">Load more</button>
+  }
+</section>
+
+<ng-template #rowMenu let-r>
+  <div class="att-menu" cdkMenu>
+    @if (r.playerId != null) {
+      <button type="button" cdkMenuItem (cdkMenuItemTriggered)="viewPlayer(r)">View player</button>
+    }
+    @if (store.canEdit()) {
+      <button type="button" cdkMenuItem [cdkMenuItemDisabled]="r.memberCount !== 1" (cdkMenuItemTriggered)="rename(r)">
+        Change tag
+      </button>
+      <button
+        type="button"
+        cdkMenuItem
+        class="danger"
+        [cdkMenuItemDisabled]="r.memberCount !== 1"
+        (cdkMenuItemTriggered)="remove(r)"
+      >
+        Remove from event
+      </button>
+    }
+    @if (profileUrl(r); as url) {
+      <a cdkMenuItem [href]="url" target="_blank" rel="noopener">start.gg profile ↗</a>
+    }
+    <a cdkMenuItem [href]="attendeesUrl()" target="_blank" rel="noopener">Manage on start.gg ↗</a>
+  </div>
+</ng-template>

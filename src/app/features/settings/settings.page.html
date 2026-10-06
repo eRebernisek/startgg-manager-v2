@@ -1,0 +1,122 @@
+<div class="stack" style="max-width: 640px">
+  <h1>Settings</h1>
+
+  <section class="card stack">
+    <h2>start.gg API token</h2>
+    <p class="muted small">
+      Create a personal token at
+      <a href="https://start.gg/admin/profile/developer" target="_blank" rel="noopener">
+        start.gg → Developer Settings</a>. It is stored only on this device. Tournaments where your account is an
+      admin can be edited; everything else is read-only.
+    </p>
+    <form class="row" (ngSubmit)="save()">
+      <input
+        class="spacer"
+        name="token"
+        autocomplete="off"
+        [type]="showToken() ? 'text' : 'password'"
+        placeholder="Paste your token"
+        [ngModel]="tokenInput()"
+        (ngModelChange)="tokenInput.set($event)"
+      />
+      <button type="button" class="ghost" (click)="showToken.set(!showToken())">
+        {{ showToken() ? 'Hide' : 'Show' }}
+      </button>
+      <button type="submit" class="primary" [disabled]="busy()">Save &amp; verify</button>
+    </form>
+
+    @if (busy()) {
+      <div class="spinner"></div>
+    }
+    @if (error()) {
+      <div class="alert error">{{ error() }}</div>
+    }
+    @if (user(); as u) {
+      <div class="row">
+        <app-avatar [src]="profileImage(u.images)" [name]="u.player?.gamerTag" [size]="40" />
+        <div>
+          <strong>{{ u.player?.gamerTag ?? u.name }}</strong>
+          <div class="muted small">Token valid · {{ u.slug }}</div>
+        </div>
+        <span class="spacer"></span>
+        <a class="btn" routerLink="/tournaments">My tournaments</a>
+      </div>
+    }
+    @if (auth.hasToken()) {
+      <div><button class="danger sm" (click)="clear()">Remove token</button></div>
+    }
+  </section>
+
+  <section class="card stack">
+    <h2>start.gg website session <span class="badge warn">Unofficial</span></h2>
+    <p class="muted small">
+      Adding, renaming and removing attendees is not in start.gg’s public API. The app does it the way start.gg’s own
+      Attendees page does, through the website API, which accepts your logged-in <strong>website session</strong>
+      (the <code>gg_session</code> cookie) instead of the API token. To get it: log in on start.gg in a desktop browser,
+      open DevTools → Application (Storage) → Cookies → <code>https://www.start.gg</code>, and copy the value of
+      <code>gg_session</code>.
+    </p>
+    <p class="muted small">
+      The session is as powerful as your password-protected login: anyone with it can act as you on start.gg. It is
+      stored only on this device and sent only to start.gg (or to your own proxy below). Logging out of start.gg ends it.
+    </p>
+    <form class="row" (ngSubmit)="saveSession()">
+      <input
+        class="spacer"
+        name="session"
+        autocomplete="off"
+        [type]="showSession() ? 'text' : 'password'"
+        placeholder="gg_session value"
+        aria-label="start.gg website session (gg_session cookie)"
+        [ngModel]="sessionInput()"
+        (ngModelChange)="sessionInput.set($event)"
+      />
+      <button type="button" class="ghost" (click)="showSession.set(!showSession())">
+        {{ showSession() ? 'Hide' : 'Show' }}
+      </button>
+      <button type="submit" class="primary" [disabled]="sessionBusy()">Save &amp; verify</button>
+    </form>
+    @if (transport() === 'none' || transport() === 'proxy') {
+      <label class="field">
+        Proxy URL (web build only)
+        <input
+          name="proxy"
+          placeholder="https://startgg-proxy.example.workers.dev"
+          [ngModel]="proxyInput()"
+          (ngModelChange)="proxyInput.set($event)"
+          (blur)="saveProxy()"
+        />
+        <span class="small">
+          Browsers cannot call start.gg’s website API directly (its CORS only allows start.gg). Deploy the small proxy
+          in <code>proxy/</code> (see README) and paste its URL. The Android app does not need it.
+        </span>
+      </label>
+    } @else {
+      <p class="muted small">
+        Transport: {{ transport() === 'native' ? 'native HTTP (Android)' : 'ng serve dev proxy (/sgg-web)' }}.
+      </p>
+    }
+    @if (sessionBusy()) {
+      <div class="spinner"></div>
+    }
+    @if (sessionError()) {
+      <div class="alert error">{{ sessionError() }}</div>
+    }
+    @if (sessionUser(); as u) {
+      <div class="small">Session valid · {{ u.player?.gamerTag ?? u.slug }}</div>
+    }
+    @if (web.hasSession()) {
+      <div><button class="danger sm" (click)="clearSession()">Remove session</button></div>
+    }
+  </section>
+
+  <section class="card stack small">
+    <h2>Without a token</h2>
+    <p class="muted">
+      Production web builds require a personal API token — the official GraphQL API authenticates every request, and the
+      unofficial website endpoint blocks browser CORS. On Android, Capacitor can call the website endpoint experimentally
+      with no token (read-only). During local <code>npm start</code>, a same-origin proxy at <code>/sgg-public</code>
+      is available for the same experiment.
+    </p>
+  </section>
+</div>

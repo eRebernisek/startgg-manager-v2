@@ -1,0 +1,24 @@
+<header class="topbar">
+  <a class="brand" routerLink="/">
+    <span class="brand-mark">SGG</span>
+    <span class="brand-text">Manager</span>
+  </a>
+  <nav>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+    @if (auth.hasToken()) {
+      <a routerLink="/tournaments" routerLinkActive="active">My tournaments</a>
+    }
+    <a routerLink="/settings" routerLinkActive="active">
+      Settings
+      <span class="dot" [class.on]="auth.hasToken()" [title]="auth.hasToken() ? 'Token set' : 'No token'"></span>
+    </a>
+  </nav>
+</header>
+<main class="content">
+  <router-outlet />
+</main>
+<div class="toasts" aria-live="polite">
+  @for (t of toast.toasts(); track t.id) {
+    <div class="toast" [class]="t.kind" (click)="toast.dismiss(t.id)">{{ t.message }}</div>
+  }
+</div>

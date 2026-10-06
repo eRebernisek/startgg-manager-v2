@@ -1,0 +1,91 @@
+@switch (mode()) {
+  @case ('elimination') {
+    @for (r of sides(); track r.side.key) {
+      @if (sides().length > 1) {
+        <h3 class="side-title">{{ r.side.key === 'winners' ? 'Winners bracket' : 'Losers bracket' }}</h3>
+      }
+      <div class="scroller">
+        <div class="canvas" [style.width.px]="r.width" [style.height.px]="r.height">
+          <svg [attr.width]="r.width" [attr.height]="r.height" aria-hidden="true">
+            @for (d of r.paths; track $index) {
+              <path [attr.d]="d" />
+            }
+          </svg>
+          @for (title of r.side.columns; track $index) {
+            <div class="col-title" [style.left.px]="$index * COL" [style.width.px]="W">{{ title }}</div>
+          }
+          @for (b of r.boxes; track b.set.id) {
+            <app-set-box
+              [set]="b.set"
+              [entrants]="entrants()"
+              [style.left.px]="b.left"
+              [style.top.px]="b.top"
+              [style.width.px]="W"
+              [style.height.px]="H"
+              (click)="selectSet.emit(b.set.id)"
+            />
+          }
+        </div>
+      </div>
+    }
+  }
+  @case ('round-robin') {
+    <div class="scroller">
+      <table class="rr">
+        <thead>
+          <tr>
+            <th></th>
+            @for (row of table(); track row.entrant.id) {
+              <th class="rr-col">{{ row.entrant.name }}</th>
+            }
+            <th>W-L</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of table(); track row.entrant.id) {
+            <tr>
+              <th><app-entrant-chip [entrant]="row.entrant" [size]="22" /></th>
+              @for (col of table(); track col.entrant.id) {
+                @let cell = row.cells['' + col.entrant.id];
+                @if (col === row) {
+                  <td class="self"></td>
+                } @else if (cell) {
+                  <td
+                    class="cell"
+                    [class.won]="cell.won === true"
+                    [class.lost]="cell.won === false"
+                    (click)="selectSet.emit(cell.set.id)"
+                  >
+                    {{ cell.text }}
+                  </td>
+                } @else {
+                  <td></td>
+                }
+              }
+              <td class="wl">{{ row.wins }}-{{ row.losses }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <ng-container *ngTemplateOutlet="roundList" />
+  }
+  @default {
+    <ng-container *ngTemplateOutlet="roundList" />
+  }
+}
+
+<ng-template #roundList>
+  <div class="scroller">
+    <div class="round-cols">
+      @for (round of rounds(); track round.round) {
+        <div class="round-col">
+          <div class="col-title static">{{ round.title }}</div>
+          @for (s of round.sets; track s.id) {
+            <app-set-box [set]="s" [entrants]="entrants()" [style.height.px]="H" (click)="selectSet.emit(s.id)" />
+          }
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>

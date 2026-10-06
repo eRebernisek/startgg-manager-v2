@@ -1,0 +1,38 @@
+<div class="stack">
+  <h1>Start.gg Manager</h1>
+  <div class="grid">
+    <section class="card stack">
+      <h2>View a bracket</h2>
+      <p class="muted small">
+        Paste any start.gg tournament, event or bracket link. A personal API token (Settings) is required in the browser
+        production build. Editing unlocks automatically when your token is an admin of that tournament.
+      </p>
+      <form class="stack" (ngSubmit)="open()">
+        <input
+          name="url"
+          inputmode="url"
+          placeholder="https://www.start.gg/tournament/…/event/…/brackets/…"
+          [ngModel]="url()"
+          (ngModelChange)="url.set($event)"
+        />
+        @if (error()) {
+          <div class="alert error small">{{ error() }}</div>
+        }
+        <button type="submit" class="primary" [disabled]="!url()">Open</button>
+      </form>
+    </section>
+
+    <section class="card stack">
+      <h2>Manage my tournaments</h2>
+      @if (auth.hasToken()) {
+        <p class="muted small">Pick one of the tournaments you organize to report sets, seed and manage entrants.</p>
+        <a class="btn primary" routerLink="/tournaments">My tournaments</a>
+      } @else {
+        <p class="muted small">
+          Add your start.gg API token to list the tournaments you admin and edit them (report sets, seeding, …).
+        </p>
+        <a class="btn" routerLink="/settings">Add API token</a>
+      }
+    </section>
+  </div>
+</div>
