@@ -115,6 +115,10 @@ export interface SetGame {
   winnerId?: number | null;
   entrant1Score?: number | null;
   entrant2Score?: number | null;
+  selections?: {
+    entrant?: { id: Id } | null;
+    character?: { id: Id; name?: string | null; images?: Image[] | null } | null;
+  }[] | null;
 }
 
 /** Input for `reportBracketSet` / `updateBracketSet` `gameData`. */

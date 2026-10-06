@@ -60,8 +60,8 @@ App id: `gg.startmanager.app`. On Android, CapacitorHttp is enabled so an experi
 
 ### Set reporting rules
 
-- Each set can include up to **3 games**. Mark who won each game (optional stock/score fields), then **Save score** (keeps the set open) or **Submit result** (completes the set).
-- Completing a set: `reportBracketSet` with `winnerId` (+ `isDQ` + optional `gameData`).
+- Each set can include up to **3 games**. For each game pick the **winner** and **characters** (stock icons from the event videogame). **Add game** copies the previous characters. **Save** keeps the set open; **Submit** completes it.
+- Completing a set: `reportBracketSet` with `winnerId` (+ `isDQ` + optional `gameData` / selections per [start.gg docs](https://developer.start.gg/docs/examples/mutations/report-set/)).
 - Saving mid-set: `updateBracketSet` with `gameData` and no set winner.
 - Toggling DQ on a completed set **without** changing the winner: `updateBracketSet`.
 - Changing the winner of a completed set: `resetSet(resetDependentSets: true)` then `reportBracketSet` (the UI confirms first).

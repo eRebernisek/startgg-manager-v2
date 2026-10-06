@@ -1,5 +1,5 @@
 import { BracketSet, SetState } from './api/models';
-import { blankGame, deriveSetWinnerId, toGameData } from './set-games';
+import { blankGame, deriveSetWinnerId, nextGameFromPrevious, toGameData } from './set-games';
 import { planSetSave, planSetScoreSave } from './plan-set-save';
 
 function baseSet(extra: Partial<BracketSet> = {}): BracketSet {
@@ -129,12 +129,45 @@ describe('set-games helpers', () => {
     expect(deriveSetWinnerId(games, 1, 2)).toBe(1);
   });
 
-  it('builds gameData only for filled games', () => {
+  it('builds gameData with character selections (Int characterId)', () => {
     expect(
-      toGameData([
-        { ...blankGame(1), winnerId: 1, entrant1Score: 2 },
-        blankGame(2),
-      ]),
-    ).toEqual([{ gameNum: 1, winnerId: 1, entrant1Score: 2 }]);
+      toGameData(
+        [
+          {
+            orderNum: 1,
+            winnerId: 1,
+            entrant1CharacterId: 10,
+            entrant2CharacterId: 20,
+          },
+          blankGame(2),
+        ],
+        1,
+        2,
+      ),
+    ).toEqual([
+      {
+        gameNum: 1,
+        winnerId: 1,
+        selections: [
+          { entrantId: 1, characterId: 10 },
+          { entrantId: 2, characterId: 20 },
+        ],
+      },
+    ]);
+  });
+
+  it('copies characters onto the next game', () => {
+    const prev = {
+      orderNum: 1,
+      winnerId: 1,
+      entrant1CharacterId: 7,
+      entrant2CharacterId: 9,
+    };
+    expect(nextGameFromPrevious(prev, 2)).toEqual({
+      orderNum: 2,
+      winnerId: null,
+      entrant1CharacterId: 7,
+      entrant2CharacterId: 9,
+    });
   });
 });

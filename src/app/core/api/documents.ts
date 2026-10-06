@@ -333,6 +333,19 @@ export const SET_DETAIL = gql`
         winnerId
         entrant1Score
         entrant2Score
+        selections {
+          entrant {
+            id
+          }
+          character {
+            id
+            name
+            images {
+              url
+              type
+            }
+          }
+        }
       }
       slots(includeByes: true) {
         id

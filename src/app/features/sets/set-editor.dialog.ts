@@ -1,7 +1,6 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { BracketSet, Entrant, Id, SetState } from '../../core/api/models';
+import { BracketSet, Character, Entrant, Id, SetState } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { isDQSlot, isPreviewSet, sameId } from '../../core/bracket-layout';
 import { planSetSave, planSetScoreSave } from '../../core/plan-set-save';
@@ -9,9 +8,11 @@ import {
   EditableGame,
   MAX_SET_GAMES,
   blankGame,
+  characterIconUrl,
   deriveSetWinnerId,
   editableGamesFromSet,
   gamesEqual,
+  nextGameFromPrevious,
   toGameData,
 } from '../../core/set-games';
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
@@ -39,7 +40,7 @@ export function initialChoice(set: BracketSet): { winner: Side | null; dq: boole
 
 @Component({
   selector: 'app-set-editor',
-  imports: [EntrantChipComponent, FormsModule],
+  imports: [EntrantChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './set-editor.dialog.html',
   styleUrl: './set-editor.dialog.scss',
@@ -56,6 +57,9 @@ export class SetEditorDialog implements OnInit {
   protected readonly winner = signal<Side | null>(null);
   protected readonly dq = signal(false);
   protected readonly games = signal<EditableGame[]>([blankGame(1)]);
+  protected readonly characters = signal<Character[]>([]);
+  protected readonly charPicker = signal<{ gameIndex: number; side: Side } | null>(null);
+
   private initialGames: EditableGame[] = [blankGame(1)];
   private initialWinner: Side | null = null;
   private initialDq = false;
@@ -67,6 +71,7 @@ export class SetEditorDialog implements OnInit {
   protected readonly sides: Side[] = [0, 1];
   protected readonly stateLabel = setStateLabel;
   protected readonly maxGames = MAX_SET_GAMES;
+  protected readonly iconUrl = characterIconUrl;
 
   protected readonly entrants = computed<(Entrant | null)[]>(() => {
     const s = this.set();
@@ -104,7 +109,8 @@ export class SetEditorDialog implements OnInit {
   async ngOnInit(): Promise<void> {
     this.busy.set(true);
     try {
-      this.applySet(await this.api.set(this.setId));
+      const [set] = await Promise.all([this.api.set(this.setId), this.loadCharacters()]);
+      this.applySet(set);
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
@@ -126,26 +132,52 @@ export class SetEditorDialog implements OnInit {
     this.syncOverallFromGames();
   }
 
-  protected setGameScore(index: number, side: Side, raw: string | number | null): void {
-    const score =
-      raw === '' || raw == null || (typeof raw === 'number' && Number.isNaN(raw))
-        ? null
-        : Number(raw);
-    const value = score == null || Number.isNaN(score) ? null : score;
+  protected openCharacterPicker(gameIndex: number, side: Side): void {
+    if (!this.canMutate() || this.busy()) return;
+    this.charPicker.set({ gameIndex, side });
+  }
+
+  protected closeCharacterPicker(): void {
+    this.charPicker.set(null);
+  }
+
+  protected pickCharacter(characterId: Id): void {
+    const ctx = this.charPicker();
+    if (!ctx) return;
     this.games.update((list) =>
-      list.map((g, i) =>
-        i === index
-          ? side === 0
-            ? { ...g, entrant1Score: value }
-            : { ...g, entrant2Score: value }
-          : g,
-      ),
+      list.map((g, i) => {
+        if (i !== ctx.gameIndex) return g;
+        const current = ctx.side === 0 ? g.entrant1CharacterId : g.entrant2CharacterId;
+        const next = sameId(current, characterId) ? null : characterId;
+        return ctx.side === 0
+          ? { ...g, entrant1CharacterId: next }
+          : { ...g, entrant2CharacterId: next };
+      }),
     );
+    this.charPicker.set(null);
+  }
+
+  protected characterFor(game: EditableGame, side: Side): Character | null {
+    const id = side === 0 ? game.entrant1CharacterId : game.entrant2CharacterId;
+    if (id == null) return null;
+    return this.characters().find((c) => sameId(c.id, id)) ?? null;
+  }
+
+  protected isPickedCharacter(characterId: Id): boolean {
+    const ctx = this.charPicker();
+    if (!ctx) return false;
+    const g = this.games()[ctx.gameIndex];
+    if (!g) return false;
+    const current = ctx.side === 0 ? g.entrant1CharacterId : g.entrant2CharacterId;
+    return sameId(current, characterId);
   }
 
   protected addGame(): void {
     if (!this.canAddGame()) return;
-    this.games.update((list) => [...list, blankGame(list.length + 1)]);
+    this.games.update((list) => {
+      const prev = list[list.length - 1];
+      return [...list, nextGameFromPrevious(prev, list.length + 1)];
+    });
   }
 
   protected removeGame(index: number): void {
@@ -168,19 +200,20 @@ export class SetEditorDialog implements OnInit {
     return (i >= 0 ? entrant.name.slice(i + sep.length) : entrant.name).trim() || entrant.name;
   }
 
-  /** Save game scores without completing the set (or refresh games on a completed set). */
+  /** Save games/characters without completing the set. */
   protected saveScore(): Promise<void> {
     const s = this.set();
-    if (!s || !this.canMutate()) return Promise.resolve();
-    const gameData = toGameData(this.games());
+    const [e0, e1] = this.entrants();
+    if (!s || !e0 || !e1 || !this.canMutate()) return Promise.resolve();
+    const gameData = toGameData(this.games(), e0.id, e1.id);
     if (!gameData.length && !this.dq()) {
-      this.error.set('Add at least one game result before saving.');
+      this.error.set('Pick a game winner or characters before saving.');
       return Promise.resolve();
     }
     const plan = planSetScoreSave(s, { isDQ: this.dq(), gameData });
     if (plan.action !== 'update') return Promise.resolve();
 
-    return this.mutate('Score saved.', async () => {
+    return this.mutate('Games saved.', async () => {
       if (s.state === SetState.Created || s.state === SetState.Ready || s.state === SetState.Called) {
         try {
           await this.api.markSetInProgress(this.setId);
@@ -210,7 +243,7 @@ export class SetEditorDialog implements OnInit {
       this.winner.set(side);
     }
 
-    const gameData = toGameData(this.games());
+    const gameData = toGameData(this.games(), e0.id, e1.id);
     const plan = planSetSave(s, {
       winnerId: this.entrants()[side]!.id,
       isDQ: this.dq(),
@@ -254,6 +287,20 @@ export class SetEditorDialog implements OnInit {
     return this.mutate('Set reset.', () => this.api.resetSet(this.setId, dependents));
   }
 
+  private async loadCharacters(): Promise<void> {
+    const vgId = this.store.event()?.videogame?.id;
+    if (vgId == null) {
+      this.characters.set([]);
+      return;
+    }
+    try {
+      const vg = await this.api.videogame(vgId);
+      this.characters.set([...(vg?.characters ?? [])].sort((a, b) => a.name.localeCompare(b.name)));
+    } catch {
+      this.characters.set([]);
+    }
+  }
+
   private syncOverallFromGames(): void {
     const [e0, e1] = this.entrants();
     if (!e0 || !e1) return;
@@ -284,7 +331,9 @@ export class SetEditorDialog implements OnInit {
     const { winner, dq } = initialChoice(set);
     this.winner.set(winner);
     this.dq.set(dq);
-    const games = editableGamesFromSet(set);
+    const e0 = set.slots[0]?.entrant?.id;
+    const e1 = set.slots[1]?.entrant?.id;
+    const games = editableGamesFromSet(set, e0, e1);
     this.games.set(games);
     this.initialGames = games.map((g) => ({ ...g }));
     this.initialWinner = winner;

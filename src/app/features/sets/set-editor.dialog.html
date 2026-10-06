@@ -62,7 +62,7 @@
 
       <div class="games-head">
         <div class="muted small">Games (up to {{ maxGames }})</div>
-        <span class="score-pill" aria-label="Game score">{{ gameScore()[0] }} – {{ gameScore()[1] }}</span>
+        <span class="score-pill" aria-label="Game wins">{{ gameScore()[0] }} – {{ gameScore()[1] }}</span>
       </div>
 
       <div class="games stack">
@@ -74,41 +74,40 @@
                 <button type="button" class="ghost sm" (click)="removeGame(i)" [disabled]="busy()">Remove</button>
               }
             </div>
-            <div class="game-pick" role="group" [attr.aria-label]="'Game ' + game.orderNum + ' winner'">
+
+            <div class="game-entrants">
               @for (side of sides; track side) {
-                <button
-                  type="button"
-                  class="game-side"
-                  [class.winner]="sameWinner(game.winnerId, side)"
-                  [disabled]="!canMutate() || busy()"
-                  (click)="setGameWinner(i, side)"
-                >
-                  {{ shortName(entrants()[side]) }}
-                </button>
+                <div class="game-entrant">
+                  <button
+                    type="button"
+                    class="char-btn"
+                    [class.selected]="!!characterFor(game, side)"
+                    [disabled]="!canMutate() || busy() || !characters().length"
+                    [attr.title]="characterFor(game, side)?.name ?? 'Select character'"
+                    (click)="openCharacterPicker(i, side)"
+                  >
+                    @if (iconUrl(characterFor(game, side)); as src) {
+                      <img [src]="src" [alt]="characterFor(game, side)?.name ?? ''" />
+                    } @else {
+                      <span class="char-placeholder">?</span>
+                    }
+                  </button>
+                  <span class="entrant-name">{{ shortName(entrants()[side]) }}</span>
+                  <button
+                    type="button"
+                    class="win-btn"
+                    [class.winner]="sameWinner(game.winnerId, side)"
+                    [disabled]="!canMutate() || busy()"
+                    (click)="setGameWinner(i, side)"
+                    title="Mark game winner"
+                  >
+                    W
+                  </button>
+                </div>
+                @if (side === 0) {
+                  <span class="vs muted small">vs</span>
+                }
               }
-            </div>
-            <div class="game-scores">
-              <label class="small">
-                Score
-                <input
-                  type="number"
-                  inputmode="numeric"
-                  [disabled]="!canMutate() || busy()"
-                  [ngModel]="game.entrant1Score"
-                  (ngModelChange)="setGameScore(i, 0, $event)"
-                />
-              </label>
-              <span class="muted">–</span>
-              <label class="small">
-                Score
-                <input
-                  type="number"
-                  inputmode="numeric"
-                  [disabled]="!canMutate() || busy()"
-                  [ngModel]="game.entrant2Score"
-                  (ngModelChange)="setGameScore(i, 1, $event)"
-                />
-              </label>
             </div>
           </div>
         }
@@ -116,6 +115,9 @@
 
       @if (canMutate() && canAddGame()) {
         <button type="button" class="sm" (click)="addGame()" [disabled]="busy()">+ Add game</button>
+      }
+      @if (canMutate() && !characters().length) {
+        <div class="muted small">No character roster for this videogame — you can still report winners.</div>
       }
 
       @if (preview()) {
@@ -147,10 +149,37 @@
         <button class="sm" (click)="markInProgress()" [disabled]="busy()">Start</button>
       }
       <span class="spacer"></span>
-      <button class="sm" (click)="saveScore()" [disabled]="busy() || !dirty()">Save score</button>
+      <button class="sm" (click)="saveScore()" [disabled]="busy() || !dirty()">Save</button>
       <button class="primary" (click)="submit()" [disabled]="busy() || (!dirty() && completed())">
-        {{ completed() ? 'Update result' : 'Submit result' }}
+        {{ completed() ? 'Update result' : 'Submit' }}
       </button>
     </footer>
   }
 </div>
+
+@if (charPicker()) {
+  <div class="char-backdrop" (click)="closeCharacterPicker()"></div>
+  <div class="char-modal" role="dialog" aria-label="Select character" (click)="$event.stopPropagation()">
+    <header>
+      <strong>Select character</strong>
+      <button type="button" class="ghost" (click)="closeCharacterPicker()" aria-label="Close">✕</button>
+    </header>
+    <div class="char-grid">
+      @for (c of characters(); track c.id) {
+        <button
+          type="button"
+          class="char-option"
+          [class.selected]="isPickedCharacter(c.id)"
+          (click)="pickCharacter(c.id)"
+        >
+          @if (iconUrl(c); as src) {
+            <img [src]="src" [alt]="c.name" />
+          } @else {
+            <span class="char-placeholder">?</span>
+          }
+          <span class="char-name">{{ c.name }}</span>
+        </button>
+      }
+    </div>
+  </div>
+}
