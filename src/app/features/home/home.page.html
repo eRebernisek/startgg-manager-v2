@@ -19,7 +19,7 @@
         @if (error()) {
           <div class="alert error small">{{ error() }}</div>
         }
-        <button type="submit" class="primary" [disabled]="!url()">Open</button>
+        <button type="submit" class="primary" [disabled]="!url().trim()">Open</button>
       </form>
     </section>
 

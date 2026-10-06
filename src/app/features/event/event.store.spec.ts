@@ -15,9 +15,11 @@ describe('EventStore bracket sync', () => {
     phaseGroupSets: ReturnType<typeof vi.fn>;
   };
   let toast: { ok: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
+  let hasToken: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
+    hasToken = vi.fn(() => true);
     api = {
       invalidate: vi.fn(),
       event: vi.fn().mockResolvedValue({
@@ -31,7 +33,7 @@ describe('EventStore bracket sync', () => {
       providers: [
         EventStore,
         { provide: StartggApi, useValue: api },
-        { provide: AuthService, useValue: { hasToken: () => true } },
+        { provide: AuthService, useValue: { hasToken } },
         { provide: ToastService, useValue: toast },
       ],
     });
@@ -92,5 +94,12 @@ describe('EventStore bracket sync', () => {
     await Promise.resolve();
 
     expect(toast.ok).toHaveBeenCalledWith('done');
+  });
+
+  it('distinguishes no-token vs token-not-admin in readOnlyReason', () => {
+    hasToken.mockReturnValue(false);
+    expect(store.readOnlyReason()).toMatch(/Settings/);
+    hasToken.mockReturnValue(true);
+    expect(store.readOnlyReason()).toMatch(/not an admin/);
   });
 });

@@ -10,6 +10,7 @@ import {
   blankGame,
   characterIconUrl,
   deriveSetWinnerId,
+  displaySetScore,
   editableGamesFromSet,
   gamesEqual,
   nextGameFromPrevious,
@@ -96,16 +97,12 @@ export class SetEditorDialog implements OnInit {
     );
   });
   protected readonly canAddGame = computed(() => this.games().length < MAX_SET_GAMES);
-  protected readonly gameScore = computed(() => {
-    const [a, b] = this.entrants();
-    if (!a || !b) return [0, 0] as const;
-    let wa = 0;
-    let wb = 0;
-    for (const g of this.games()) {
-      if (sameId(g.winnerId, a.id)) wa++;
-      else if (sameId(g.winnerId, b.id)) wb++;
-    }
-    return [wa, wb] as const;
+  /** Game wins, or slot standings — never a fake `0 – 0` on a completed set. */
+  protected readonly gameScoreLabel = computed(() => {
+    const s = this.set();
+    if (!s) return '–';
+    const score = displaySetScore(s, this.games());
+    return score ? `${score[0]} – ${score[1]}` : '–';
   });
 
   async ngOnInit(): Promise<void> {

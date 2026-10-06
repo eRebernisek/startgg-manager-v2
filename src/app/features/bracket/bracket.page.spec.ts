@@ -119,6 +119,46 @@ describe('BracketPage start bracket', () => {
     expect((f.nativeElement as HTMLElement).querySelector('.rebuild-banner')?.textContent).toContain('Rebuilding');
   });
 
+  it('clears the canvas when switching phase so the previous pool is not shown', async () => {
+    const phase2: Phase = {
+      id: 2365688,
+      name: 'Round 2',
+      bracketType: 'DOUBLE_ELIMINATION',
+      phaseGroups: {
+        nodes: [
+          { id: 9990001, displayIdentifier: 'A1', state: 2, bracketType: 'DOUBLE_ELIMINATION' },
+          { id: 9990002, displayIdentifier: 'B1', state: 2, bracketType: 'DOUBLE_ELIMINATION' },
+        ],
+      },
+    };
+    const f = await setup(1);
+    await f.whenStable();
+    expect(f.componentInstance['displaySets']().length).toBe(2);
+
+    (store['phases'] as ReturnType<typeof signal<Phase[]>>).set([
+      {
+        id: 2173645,
+        name: 'Bracket',
+        bracketType: 'DOUBLE_ELIMINATION',
+        phaseGroups: { nodes: [{ id: 3162844, state: 1, bracketType: 'DOUBLE_ELIMINATION', displayIdentifier: 'A1' }] },
+      },
+      phase2,
+    ]);
+    f.detectChanges();
+
+    api['phaseGroupSets']!.mockImplementation(
+      () => new Promise<BracketSet[]>(() => undefined), // hang — stay on loading
+    );
+    f.componentInstance['onPhaseChange']('2365688');
+    f.detectChanges();
+
+    expect(f.componentInstance['phaseId']()).toBe('2365688');
+    expect(f.componentInstance['groupId']()).toBe('9990001'); // same pool letter A1
+    expect(f.componentInstance['displaySets']().length).toBe(0);
+    expect(f.componentInstance['loading']()).toBe(true);
+    expect((f.nativeElement as HTMLElement).querySelector('.spinner')).toBeTruthy();
+  });
+
   it('does nothing when the dialog is cancelled', async () => {
     dialog.open.mockReturnValue({ closed: of(false) });
     const f = await setup(1);

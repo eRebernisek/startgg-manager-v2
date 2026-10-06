@@ -10,13 +10,20 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BracketSet, PhaseGroupRef, Seed } from '../../core/api/models';
 import { firstValueFrom } from 'rxjs';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { bracketSignature } from '../../core/bracket-reset';
-import { poolStarted, rebuiltAfterStart, resolvePhaseGroupId, startPool } from '../../core/bracket-start';
+import {
+  poolStarted,
+  rebuiltAfterStart,
+  resolvePhaseGroupId,
+  sortPhaseGroups,
+  startPool,
+} from '../../core/bracket-start';
 import { ToastService } from '../../core/toast.service';
 import { errorMessage } from '../../shared/display';
 import { EventStore } from '../event/event.store';
@@ -30,69 +37,88 @@ import { confirmBracketStart } from './start-bracket.dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stack">
-      <div class="row">
-        <label class="field">
-          Phase
-          <select [ngModel]="phaseId()" (ngModelChange)="onPhaseChange($event)">
-            @for (p of phases(); track p.id) {
-              <option [value]="p.id">{{ p.name }}</option>
-            }
-          </select>
-        </label>
-        @if (groups().length > 1) {
+      @if (!phases().length) {
+        <p class="muted">No phases published for this event yet.</p>
+      } @else {
+        <div class="row">
           <label class="field">
-            Group
-            <select [ngModel]="groupId()" (ngModelChange)="onGroupChange($event)">
-              @for (g of groups(); track g.id) {
-                <option [value]="g.id">{{ g.displayIdentifier || g.id }}</option>
+            Phase
+            <select
+              [ngModel]="phaseId()"
+              (ngModelChange)="onPhaseChange($event)"
+              [attr.aria-label]="'Phase'"
+            >
+              @for (p of phases(); track p.id) {
+                <option [value]="'' + p.id">{{ p.name }}</option>
               }
             </select>
           </label>
+          @if (groups().length > 1) {
+            <label class="field">
+              Group
+              <select
+                [ngModel]="groupId()"
+                (ngModelChange)="onGroupChange($event)"
+                [attr.aria-label]="'Group'"
+              >
+                @for (g of groups(); track g.id) {
+                  <option [value]="'' + g.id">{{ g.displayIdentifier || g.id }}</option>
+                }
+              </select>
+            </label>
+          }
+          <span class="spacer"></span>
+          @if (progress()) {
+            <span class="muted small">{{ progress() }}</span>
+          } @else if (loading() && displaySets().length) {
+            <span class="muted small">Updating…</span>
+          }
+          @if (store.canEdit() && group()) {
+            @if (started()) {
+              <button type="button" class="sm start-btn running" disabled title="This bracket is running on start.gg">
+                <span class="dot" aria-hidden="true"></span>Running
+              </button>
+            } @else {
+              <button type="button" class="primary sm start-btn" [disabled]="starting()" (click)="startBracket()">
+                {{ starting() ? 'Starting…' : 'Start bracket' }}
+              </button>
+            }
+          }
+        </div>
+
+        @if (store.syncFailed(); as syncErr) {
+          <div class="alert error row">
+            <span class="spacer">{{ syncErr }}</span>
+            <button type="button" class="sm" (click)="retrySync()">Retry</button>
+          </div>
         }
-        <span class="spacer"></span>
-        @if (progress()) {
-          <span class="muted small">{{ progress() }}</span>
+        @if (error()) {
+          <div class="alert error">{{ error() }}</div>
         }
-        @if (store.canEdit() && group()) {
-          @if (started()) {
-            <button type="button" class="sm start-btn running" disabled title="This bracket is running on start.gg">
-              <span class="dot" aria-hidden="true"></span>Running
-            </button>
+        @if (rebuilding()) {
+          <div class="alert info small row rebuild-banner">
+            <span class="spinner sm"></span>Rebuilding…
+          </div>
+        }
+        @if (loading() && !displaySets().length) {
+          <div class="spinner" aria-label="Loading bracket"></div>
+        } @else if (displaySets().length) {
+          <app-bracket-view
+            class="bracket-canvas"
+            [class.rebuilding]="rebuilding()"
+            [class.switching]="loading()"
+            [sets]="displaySets()"
+            [seeds]="seeds()"
+            [bracketType]="bracketType()"
+            (selectSet)="openSet($event)"
+          />
+        } @else if (!loading() && !rebuilding()) {
+          @if (!groups().length) {
+            <p class="muted">This phase has no pools yet.</p>
           } @else {
-            <button type="button" class="primary sm start-btn" [disabled]="starting()" (click)="startBracket()">
-              {{ starting() ? 'Starting…' : 'Start bracket' }}
-            </button>
+            <p class="muted">No sets in this phase group yet.</p>
           }
         }
-      </div>
-
-      @if (store.syncFailed(); as syncErr) {
-        <div class="alert error row">
-          <span class="spacer">{{ syncErr }}</span>
-          <button type="button" class="sm" (click)="retrySync()">Retry</button>
-        </div>
-      }
-      @if (error()) {
-        <div class="alert error">{{ error() }}</div>
-      }
-      @if (rebuilding()) {
-        <div class="alert info small row rebuild-banner">
-          <span class="spinner sm"></span>Rebuilding…
-        </div>
-      }
-      @if (loading() && !displaySets().length) {
-        <div class="spinner"></div>
-      } @else if (displaySets().length) {
-        <app-bracket-view
-          class="bracket-canvas"
-          [class.rebuilding]="rebuilding()"
-          [sets]="displaySets()"
-          [seeds]="seeds()"
-          [bracketType]="bracketType()"
-          (selectSet)="openSet($event)"
-        />
-      } @else if (!loading() && !rebuilding()) {
-        <p class="muted">No sets in this phase group yet.</p>
       }
     </div>
   `,
@@ -117,7 +143,8 @@ import { confirmBracketStart } from './start-bracket.dialog';
     .rebuild-banner {
       margin-bottom: 0.25rem;
     }
-    .bracket-canvas.rebuilding {
+    .bracket-canvas.rebuilding,
+    .bracket-canvas.switching {
       opacity: 0.55;
       pointer-events: none;
     }
@@ -131,12 +158,18 @@ export class BracketPage implements OnDestroy {
   private readonly injector = inject(Injector);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  /** Reactive query params — URL is the source of truth for phase/group. */
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
 
   protected readonly phaseId = signal('');
   protected readonly groupId = signal('');
   protected readonly sets = signal<BracketSet[]>([]);
-  /** Last non-empty bracket; kept visible while start.gg rebuilds. */
+  /** Last non-empty bracket for the current group; kept visible while start.gg rebuilds. */
   private readonly staleSets = signal<BracketSet[]>([]);
+  /** Group id that `sets` / `staleSets` belong to — avoids flashing another pool while switching. */
+  private readonly loadedGroupId = signal('');
   protected readonly seeds = signal<Seed[]>([]);
   protected readonly loading = signal(false);
   protected readonly progress = signal('');
@@ -145,7 +178,7 @@ export class BracketPage implements OnDestroy {
   protected readonly phases = computed(() => this.store.phases());
   protected readonly groups = computed<PhaseGroupRef[]>(() => {
     const phase = this.phases().find((p) => String(p.id) === this.phaseId());
-    return phase?.phaseGroups?.nodes ?? [];
+    return sortPhaseGroups(phase?.phaseGroups?.nodes ?? []);
   });
   protected readonly group = computed(() => this.groups().find((g) => String(g.id) === this.groupId()) ?? null);
   protected readonly started = computed(() => poolStarted(this.group()));
@@ -160,6 +193,8 @@ export class BracketPage implements OnDestroy {
   protected readonly displaySets = computed(() => {
     const current = this.sets();
     const stale = this.staleSets();
+    const sameGroup = this.loadedGroupId() === this.groupId();
+    if (!sameGroup) return current;
     if (this.rebuilding() && !current.length && stale.length) return stale;
     return current.length ? current : stale;
   });
@@ -169,28 +204,36 @@ export class BracketPage implements OnDestroy {
   private loadToken = 0;
 
   constructor() {
+    // URL (+ defaults) → phase/group signals. Does not read the signals so user edits
+    // that write the URL first are not overwritten by a stale snapshot.
     effect(() => {
-      if (!this.store.event()) return;
-      const qp = this.route.snapshot.queryParamMap;
+      const event = this.store.event();
+      const qp = this.queryParams();
       const phases = this.store.phases();
-      if (!phases.length) return;
-      let phase = qp.get('phase') ?? (this.phaseId() || untracked(this.store.seededPhaseId) || '');
-      let group = qp.get('group') ?? this.groupId();
+      if (!event || !phases.length) return;
+
+      let phase = qp.get('phase') || untracked(this.store.seededPhaseId) || '';
+      let group = qp.get('group') || '';
       if (!phase || !phases.some((p) => String(p.id) === phase)) {
         phase = String(phases[0]!.id);
       }
-      const groups = phases.find((p) => String(p.id) === phase)?.phaseGroups?.nodes ?? [];
-      const hint = groups.find((g) => String(g.id) === group) ?? groups[0] ?? null;
+      const groups = sortPhaseGroups(phases.find((p) => String(p.id) === phase)?.phaseGroups?.nodes ?? []);
+      const byId = groups.find((g) => String(g.id) === group) ?? null;
+      // Prefer the previous pool letter when the URL group is missing/stale after a phase switch.
+      const prevLabel = untracked(() => this.group()?.displayIdentifier);
+      const byLabel = prevLabel ? groups.find((g) => g.displayIdentifier === prevLabel) : null;
+      const hint = byId ?? byLabel ?? groups[0] ?? null;
       group = resolvePhaseGroupId(groups, group, hint);
-      if (phase !== this.phaseId() || group !== this.groupId()) {
+
+      const curPhase = untracked(this.phaseId);
+      const curGroup = untracked(this.groupId);
+      if (phase !== curPhase || group !== curGroup) {
+        if (group !== curGroup) this.clearBracketCanvas();
         this.phaseId.set(phase);
         this.groupId.set(group);
-        void this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { phase, group: group || null },
-          queryParamsHandling: 'merge',
-          replaceUrl: true,
-        });
+      }
+      if (qp.get('phase') !== phase || (group ? qp.get('group') !== group : !!qp.get('group'))) {
+        void this.writeQuery(phase, group);
       }
     });
 
@@ -198,12 +241,13 @@ export class BracketPage implements OnDestroy {
       const phase = this.phaseId();
       let group = this.groupId();
       this.store.revision();
-      const groups = this.phases().find((p) => String(p.id) === phase)?.phaseGroups?.nodes ?? [];
+      const groups = sortPhaseGroups(this.phases().find((p) => String(p.id) === phase)?.phaseGroups?.nodes ?? []);
       if (group && groups.length) {
         const hint = this.group() ?? groups.find((g) => String(g.id) === group) ?? null;
         const resolved = resolvePhaseGroupId(groups, group, hint);
         if (resolved !== group) {
           this.groupId.set(resolved);
+          void this.writeQuery(phase, resolved);
           return;
         }
       }
@@ -226,13 +270,22 @@ export class BracketPage implements OnDestroy {
   }
 
   protected onPhaseChange(id: string): void {
+    const groups = sortPhaseGroups(this.phases().find((p) => String(p.id) === id)?.phaseGroups?.nodes ?? []);
+    // Keep the same pool letter when the next phase has it (A1 → A1).
+    const prev = this.group()?.displayIdentifier;
+    const next =
+      (prev && groups.find((g) => g.displayIdentifier === prev)) || groups[0] || null;
+    const group = next ? String(next.id) : '';
+    this.clearBracketCanvas();
     this.phaseId.set(id);
-    const groups = this.phases().find((p) => String(p.id) === id)?.phaseGroups?.nodes ?? [];
-    this.groupId.set(groups[0] ? String(groups[0].id) : '');
+    this.groupId.set(group);
+    void this.writeQuery(id, group);
   }
 
   protected onGroupChange(id: string): void {
+    this.clearBracketCanvas();
     this.groupId.set(id);
+    void this.writeQuery(this.phaseId(), id);
   }
 
   protected async startBracket(): Promise<void> {
@@ -270,6 +323,30 @@ export class BracketPage implements OnDestroy {
     openSetEditor(this.dialog, this.injector, setId);
   }
 
+  private writeQuery(phase: string, group: string): Promise<boolean> {
+    return this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { phase: phase || null, group: group || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private clearBracketCanvas(): void {
+    this.loadToken++;
+    this.sets.set([]);
+    this.staleSets.set([]);
+    this.seeds.set([]);
+    this.loadedGroupId.set('');
+    this.progress.set('');
+    this.error.set(null);
+    this.loading.set(true);
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = undefined;
+    }
+  }
+
   private async load(groupId: string): Promise<void> {
     const token = ++this.loadToken;
     this.loading.set(true);
@@ -284,10 +361,11 @@ export class BracketPage implements OnDestroy {
       ]);
       if (token !== this.loadToken) return;
       const syncing = untracked(() => this.store.syncing());
-      if (sets.length === 0 && syncing && this.staleSets().length) {
+      if (sets.length === 0 && syncing && this.staleSets().length && this.loadedGroupId() === groupId) {
         // start.gg cleared the pool mid-rebuild — keep the previous bracket on screen.
       } else {
         this.sets.set(sets);
+        this.loadedGroupId.set(groupId);
         if (sets.length) this.staleSets.set(sets);
       }
       this.seeds.set(seeds);
@@ -307,7 +385,7 @@ export class BracketPage implements OnDestroy {
     this.pollTimer = setInterval(() => {
       if (document.hidden || this.store.syncing()) return;
       void this.api.phaseGroupSets(groupId).then(
-        (sets) => this.applyLoadedSets(sets),
+        (sets) => this.applyLoadedSets(groupId, sets),
         () => undefined,
       );
     }, 25_000);
@@ -320,7 +398,7 @@ export class BracketPage implements OnDestroy {
       const groupId = this.groupId();
       if (!groupId || document.hidden) return;
       void this.api.phaseGroupSets(groupId).then(
-        (sets) => this.applyLoadedSets(sets),
+        (sets) => this.applyLoadedSets(groupId, sets),
         () => undefined,
       );
     };
@@ -335,9 +413,13 @@ export class BracketPage implements OnDestroy {
     }
   }
 
-  private applyLoadedSets(sets: BracketSet[]): void {
-    if (sets.length === 0 && this.store.syncing() && this.staleSets().length) return;
+  private applyLoadedSets(groupId: string, sets: BracketSet[]): void {
+    if (groupId !== this.groupId()) return;
+    if (sets.length === 0 && this.store.syncing() && this.staleSets().length && this.loadedGroupId() === groupId) {
+      return;
+    }
     this.sets.set(sets);
+    this.loadedGroupId.set(groupId);
     if (sets.length) this.staleSets.set(sets);
   }
 }

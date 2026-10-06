@@ -1,5 +1,12 @@
 import { BracketSet, SetState } from './api/models';
-import { pickStartSet, poolStarted, rebuiltAfterStart, resolvePhaseGroupId, startPool } from './bracket-start';
+import {
+  pickStartSet,
+  poolStarted,
+  rebuiltAfterStart,
+  resolvePhaseGroupId,
+  sortPhaseGroups,
+  startPool,
+} from './bracket-start';
 import { bracketSignature } from './bracket-reset';
 
 const entrant = (id: number) => ({ entrant: { id, name: `E${id}` } });
@@ -56,6 +63,18 @@ describe('resolvePhaseGroupId', () => {
     expect(resolvePhaseGroupId(groups, '99', groups[0]!)).toBe('99');
     expect(resolvePhaseGroupId(groups, '3162844', { displayIdentifier: 'B' })).toBe('100');
     expect(resolvePhaseGroupId(groups, '3162844', null)).toBe('99');
+  });
+});
+
+describe('sortPhaseGroups', () => {
+  it('orders pool labels numerically (A2 before A10, B before C)', () => {
+    const sorted = sortPhaseGroups([
+      { id: 1, displayIdentifier: 'A10' },
+      { id: 2, displayIdentifier: 'B1' },
+      { id: 3, displayIdentifier: 'A2' },
+      { id: 4, displayIdentifier: 'A1' },
+    ]);
+    expect(sorted.map((g) => g.displayIdentifier)).toEqual(['A1', 'A2', 'A10', 'B1']);
   });
 });
 

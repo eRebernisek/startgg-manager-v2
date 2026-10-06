@@ -62,6 +62,15 @@ export function resolvePhaseGroupId(
   return String(groups[0]!.id);
 }
 
+/** Pool labels like A1, A2, B10 — numeric-aware so A10 follows A9. */
+export function sortPhaseGroups<T extends Pick<PhaseGroupRef, 'displayIdentifier' | 'id'>>(groups: readonly T[]): T[] {
+  return [...groups].sort((a, b) => {
+    const la = String(a.displayIdentifier ?? a.id);
+    const lb = String(b.displayIdentifier ?? b.id);
+    return la.localeCompare(lb, undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
 export async function startPool(api: StartApi, sets: readonly BracketSet[]): Promise<Id> {
   const first = pickStartSet(sets);
   if (!first) throw new Error('No preview sets to start. Reload the bracket and try again.');

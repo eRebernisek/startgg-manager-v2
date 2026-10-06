@@ -47,6 +47,7 @@ describe('SeedingPage', () => {
   let store: {
     phases: ReturnType<typeof signal<Phase[]>>;
     canEdit: () => boolean;
+    readOnlyReason: () => string;
     phaseSets: ReturnType<typeof vi.fn>;
     bracketChanged: ReturnType<typeof vi.fn>;
   };
@@ -80,6 +81,7 @@ describe('SeedingPage', () => {
     store = {
       phases: signal<Phase[]>([]),
       canEdit: () => true,
+      readOnlyReason: () => 'View-only — add an API token in Settings to edit when you are an admin.',
       phaseSets: vi.fn().mockResolvedValue([set(10, SetState.Created)]),
       bracketChanged: vi.fn().mockResolvedValue(undefined),
     };

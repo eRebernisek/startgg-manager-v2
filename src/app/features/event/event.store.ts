@@ -44,6 +44,13 @@ export class EventStore {
     [...(this.event()?.phases ?? [])].sort((a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0)),
   );
 
+  /** Distinguish missing token vs token that is not a tournament admin. */
+  readOnlyReason(): string {
+    return this.auth.hasToken()
+      ? 'Your token is not an admin of this tournament.'
+      : 'View-only — add an API token in Settings to edit when you are an admin.';
+  }
+
   async load(tournamentSlug: string, eventSlug: string): Promise<void> {
     this.tournamentSlug.set(tournamentSlug);
     this.eventSlug.set(eventSlug);

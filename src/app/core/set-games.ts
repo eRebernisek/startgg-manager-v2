@@ -109,6 +109,16 @@ export function toGameData(
 
 /** Overall set winner from game wins (ties / incomplete → null). */
 export function deriveSetWinnerId(games: EditableGame[], entrant1Id: Id, entrant2Id: Id): Id | null {
+  const [a, b] = countGameWins(games, entrant1Id, entrant2Id);
+  if (a === b) return null;
+  return a > b ? entrant1Id : entrant2Id;
+}
+
+export function countGameWins(
+  games: readonly EditableGame[],
+  entrant1Id: Id,
+  entrant2Id: Id,
+): readonly [number, number] {
   let a = 0;
   let b = 0;
   for (const g of games) {
@@ -116,8 +126,32 @@ export function deriveSetWinnerId(games: EditableGame[], entrant1Id: Id, entrant
     if (sameId(g.winnerId, entrant1Id)) a++;
     else if (sameId(g.winnerId, entrant2Id)) b++;
   }
-  if (a === b) return null;
-  return a > b ? entrant1Id : entrant2Id;
+  return [a, b];
+}
+
+/**
+ * Set score for the editor header: prefer game wins, then non-negative slot standings.
+ * Returns `null` instead of a misleading `0 – 0` when a completed set has a winner but no score data
+ * (common when the public API omits per-game `winnerId`).
+ */
+export function displaySetScore(
+  set: BracketSet,
+  games: readonly EditableGame[],
+): readonly [number, number] | null {
+  const e0 = set.slots[0]?.entrant?.id;
+  const e1 = set.slots[1]?.entrant?.id;
+  if (e0 != null && e1 != null) {
+    const [wa, wb] = countGameWins(games, e0, e1);
+    if (wa + wb > 0) return [wa, wb];
+  }
+
+  const a = set.slots[0]?.standing?.stats?.score?.value;
+  const b = set.slots[1]?.standing?.stats?.score?.value;
+  if (typeof a === 'number' && typeof b === 'number' && a >= 0 && b >= 0) {
+    // Standings use -1 for DQ; non-negative values are real set scores.
+    if (a > 0 || b > 0 || set.winnerId == null) return [a, b];
+  }
+  return null;
 }
 
 export function gamesEqual(a: EditableGame[], b: EditableGame[]): boolean {

@@ -36,7 +36,7 @@
       <div class="versus" role="radiogroup" aria-label="Winner">
         @for (side of sides; track side) {
           @if (side === 1) {
-            <div class="set-score" aria-label="Set score">{{ gameScore()[0] }} – {{ gameScore()[1] }}</div>
+            <div class="set-score" aria-label="Set score">{{ gameScoreLabel() }}</div>
           }
           <div class="side-wrap">
             <button
@@ -153,7 +153,7 @@
           start.gg first.
         </div>
       } @else if (!store.canEdit()) {
-        <div class="alert small">Read-only: your token is not an admin of this tournament.</div>
+        <div class="alert small">Read-only: {{ store.readOnlyReason() }}</div>
       } @else {
         <label class="row small dq-toggle">
           <input

@@ -31,10 +31,16 @@ import { confirmBracketReset } from './reset-bracket.dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stack">
-      <div class="alert info small">
-        Seeding uses <strong>seed IDs</strong>, not entrant IDs. Drag to reorder, then save the full mapping for the
-        phase.
-      </div>
+      @if (store.canEdit()) {
+        <div class="alert info small">
+          Seeding uses <strong>seed IDs</strong>, not entrant IDs. Drag to reorder, then save the full mapping for the
+          phase.
+        </div>
+      } @else {
+        <div class="alert info small">
+          Viewing seeds (read-only). {{ store.readOnlyReason() }}
+        </div>
+      }
 
       <div class="row">
         <label class="field">
@@ -54,7 +60,7 @@ import { confirmBracketReset } from './reset-bracket.dialog';
             {{ saving() ? 'Saving…' : 'Save seeding' }}
           </button>
         } @else {
-          <span class="badge">Read-only</span>
+          <span class="badge" [title]="store.readOnlyReason()">Read-only</span>
         }
       </div>
 
