@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import * as D from './documents';
 import {
   BracketSet,
+  BracketSetGameDataInput,
   Connection,
   CurrentUser,
   Entrant,
@@ -164,22 +165,25 @@ export class StartggApi {
 
   // ---------- Mutations (admin token required) ----------
 
-  /** Completes the set with `winnerId`. No per-game data is sent. */
-  async reportSet(setId: Id, winnerId: Id, isDQ = false) {
+  /** Completes the set with `winnerId`. Optional `gameData` overwrites all games. */
+  async reportSet(setId: Id, winnerId: Id, isDQ = false, gameData?: BracketSetGameDataInput[]) {
     const data = await this.client.request<{ reportBracketSet: BracketSet[] }>(
       D.REPORT_BRACKET_SET,
-      { setId, winnerId, isDQ },
+      { setId, winnerId, isDQ, gameData: gameData?.length ? gameData : undefined },
       { isMutation: true },
     );
     this.client.invalidate();
     return data.reportBracketSet;
   }
 
-  /** Updates the DQ flag of an already-reported set; cannot change the winner (use resetSet). */
-  async updateSet(setId: Id, winnerId: Id, isDQ = false) {
+  /**
+   * Updates game data and/or DQ. Pass `winnerId: null` to save scores without completing.
+   * Cannot change the winner of a completed set (use resetSet).
+   */
+  async updateSet(setId: Id, winnerId: Id | null, isDQ = false, gameData?: BracketSetGameDataInput[]) {
     const data = await this.client.request<{ updateBracketSet: BracketSet }>(
       D.UPDATE_BRACKET_SET,
-      { setId, winnerId, isDQ },
+      { setId, winnerId, isDQ, gameData: gameData?.length ? gameData : undefined },
       { isMutation: true },
     );
     this.client.invalidate();

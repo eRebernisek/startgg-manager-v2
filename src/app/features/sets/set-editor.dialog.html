@@ -32,7 +32,7 @@
     }
 
     @if (set()) {
-      <div class="muted small">Who won?</div>
+      <div class="muted small">Set winner</div>
       <div class="versus" role="radiogroup" aria-label="Winner">
         @for (side of sides; track side) {
           <div class="side-wrap">
@@ -59,6 +59,64 @@
           </div>
         }
       </div>
+
+      <div class="games-head">
+        <div class="muted small">Games (up to {{ maxGames }})</div>
+        <span class="score-pill" aria-label="Game score">{{ gameScore()[0] }} – {{ gameScore()[1] }}</span>
+      </div>
+
+      <div class="games stack">
+        @for (game of games(); track game.orderNum; let i = $index) {
+          <div class="game-row card">
+            <div class="game-label">
+              <strong>Game {{ game.orderNum }}</strong>
+              @if (canMutate() && games().length > 1) {
+                <button type="button" class="ghost sm" (click)="removeGame(i)" [disabled]="busy()">Remove</button>
+              }
+            </div>
+            <div class="game-pick" role="group" [attr.aria-label]="'Game ' + game.orderNum + ' winner'">
+              @for (side of sides; track side) {
+                <button
+                  type="button"
+                  class="game-side"
+                  [class.winner]="sameWinner(game.winnerId, side)"
+                  [disabled]="!canMutate() || busy()"
+                  (click)="setGameWinner(i, side)"
+                >
+                  {{ shortName(entrants()[side]) }}
+                </button>
+              }
+            </div>
+            <div class="game-scores">
+              <label class="small">
+                Score
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  [disabled]="!canMutate() || busy()"
+                  [ngModel]="game.entrant1Score"
+                  (ngModelChange)="setGameScore(i, 0, $event)"
+                />
+              </label>
+              <span class="muted">–</span>
+              <label class="small">
+                Score
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  [disabled]="!canMutate() || busy()"
+                  [ngModel]="game.entrant2Score"
+                  (ngModelChange)="setGameScore(i, 1, $event)"
+                />
+              </label>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (canMutate() && canAddGame()) {
+        <button type="button" class="sm" (click)="addGame()" [disabled]="busy()">+ Add game</button>
+      }
 
       @if (preview()) {
         <div class="alert info small">
@@ -89,7 +147,8 @@
         <button class="sm" (click)="markInProgress()" [disabled]="busy()">Start</button>
       }
       <span class="spacer"></span>
-      <button class="primary" (click)="submit()" [disabled]="busy() || unchanged()">
+      <button class="sm" (click)="saveScore()" [disabled]="busy() || !dirty()">Save score</button>
+      <button class="primary" (click)="submit()" [disabled]="busy() || (!dirty() && completed())">
         {{ completed() ? 'Update result' : 'Submit result' }}
       </button>
     </footer>

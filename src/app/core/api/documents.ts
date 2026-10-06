@@ -327,6 +327,13 @@ export const SET_DETAIL = gql`
       station {
         number
       }
+      games {
+        id
+        orderNum
+        winnerId
+        entrant1Score
+        entrant2Score
+      }
       slots(includeByes: true) {
         id
         prereqType
@@ -476,8 +483,8 @@ export const PLAYER = gql`
 // Mutations return SetLight so the bracket store can merge advanced winners without a refetch.
 
 export const REPORT_BRACKET_SET = gql`
-  mutation ReportBracketSet($setId: ID!, $winnerId: ID, $isDQ: Boolean) {
-    reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ) {
+  mutation ReportBracketSet($setId: ID!, $winnerId: ID, $isDQ: Boolean, $gameData: [BracketSetGameDataInput]) {
+    reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ, gameData: $gameData) {
       ...SetLight
     }
   }
@@ -485,8 +492,8 @@ export const REPORT_BRACKET_SET = gql`
 `;
 
 export const UPDATE_BRACKET_SET = gql`
-  mutation UpdateBracketSet($setId: ID!, $winnerId: ID, $isDQ: Boolean) {
-    updateBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ) {
+  mutation UpdateBracketSet($setId: ID!, $winnerId: ID, $isDQ: Boolean, $gameData: [BracketSetGameDataInput]) {
+    updateBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ, gameData: $gameData) {
       ...SetLight
     }
   }

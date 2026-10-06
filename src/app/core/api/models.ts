@@ -108,6 +108,25 @@ export interface PhaseGroupRef {
   state?: number | null;
 }
 
+/** A single game within a set (from the API). */
+export interface SetGame {
+  id?: Id;
+  orderNum?: number | null;
+  winnerId?: number | null;
+  entrant1Score?: number | null;
+  entrant2Score?: number | null;
+}
+
+/** Input for `reportBracketSet` / `updateBracketSet` `gameData`. */
+export interface BracketSetGameDataInput {
+  gameNum: number;
+  winnerId?: Id | null;
+  entrant1Score?: number | null;
+  entrant2Score?: number | null;
+  stageId?: Id | null;
+  selections?: { entrantId: Id; characterId?: number | null }[] | null;
+}
+
 export interface BracketSet {
   id: Id;
   identifier?: string | null;
@@ -122,6 +141,7 @@ export interface BracketSet {
   slots: SetSlot[];
   stream?: { streamName?: string | null } | null;
   station?: { number?: number | null } | null;
+  games?: SetGame[] | null;
 }
 
 export interface Phase {

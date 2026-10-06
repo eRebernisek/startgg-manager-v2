@@ -60,8 +60,9 @@ App id: `gg.startmanager.app`. On Android, CapacitorHttp is enabled so an experi
 
 ### Set reporting rules
 
-- The app only records who won — no per-game scores or game data are shown or sent.
-- Completing a set: `reportBracketSet` with `winnerId` (+ `isDQ`).
+- Each set can include up to **3 games**. Mark who won each game (optional stock/score fields), then **Save score** (keeps the set open) or **Submit result** (completes the set).
+- Completing a set: `reportBracketSet` with `winnerId` (+ `isDQ` + optional `gameData`).
+- Saving mid-set: `updateBracketSet` with `gameData` and no set winner.
 - Toggling DQ on a completed set **without** changing the winner: `updateBracketSet`.
 - Changing the winner of a completed set: `resetSet(resetDependentSets: true)` then `reportBracketSet` (the UI confirms first).
 - Saving seeding (`updatePhaseSeeding`) clears the API cache, refetches the event and reloads the bracket and sets tabs.
