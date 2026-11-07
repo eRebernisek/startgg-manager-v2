@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { startggAdminUrl } from '../../core/bracket-url';
+import { shortSlug, startggAdminUrl } from '../../core/bracket-url';
+import { BreadcrumbService, eventCrumbKey, tournamentCrumbKey } from '../../core/breadcrumbs';
 import { EventStore } from './event.store';
 
 @Component({
@@ -57,11 +58,22 @@ import { EventStore } from './event.store';
 })
 export class EventPage {
   protected readonly store = inject(EventStore);
+  private readonly breadcrumbs = inject(BreadcrumbService);
   readonly tournament = input.required<string>();
   readonly event = input.required<string>();
 
   constructor() {
     effect(() => void this.store.load(this.tournament(), this.event()));
+    effect(() => {
+      const loaded = this.store.event();
+      const tournament = this.tournament();
+      const event = this.event();
+      if (!loaded || shortSlug(loaded.slug) !== event) return;
+      const loadedTournament = shortSlug(loaded.tournament.slug);
+      if (loadedTournament !== tournament && loaded.tournament.slug !== tournament) return;
+      this.breadcrumbs.setLabel(tournamentCrumbKey(tournament), loaded.tournament.name);
+      this.breadcrumbs.setLabel(eventCrumbKey(tournament, event), loaded.name);
+    });
   }
 
   protected retry(): void {

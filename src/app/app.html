@@ -1,17 +1,36 @@
 <header class="topbar">
-  <a class="brand" routerLink="/">
-    <span class="brand-mark">SGG</span>
-    <span class="brand-text">Manager</span>
-  </a>
-  <nav>
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-    @if (auth.hasToken()) {
-      <a routerLink="/tournaments" routerLinkActive="active">My tournaments</a>
+  <div class="topbar-row">
+    @if (navigation.canBack()) {
+      <button type="button" class="ghost back" (click)="navigation.goBack()" aria-label="Back">
+        <span aria-hidden="true">←</span>
+      </button>
     }
-    <a routerLink="/settings" routerLinkActive="active">
-      Settings
-      <span class="dot" [class.on]="auth.hasToken()" [title]="auth.hasToken() ? 'Token set' : 'No token'"></span>
+    <a class="brand" routerLink="/">
+      <span class="brand-mark">SGG</span>
+      <span class="brand-text">Manager</span>
     </a>
+    <nav>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      @if (auth.hasToken()) {
+        <a routerLink="/tournaments" routerLinkActive="active">My tournaments</a>
+      }
+      <a routerLink="/settings" routerLinkActive="active">
+        Settings
+        <span class="dot" [class.on]="auth.hasToken()" [title]="auth.hasToken() ? 'Token set' : 'No token'"></span>
+      </a>
+    </nav>
+  </div>
+  <nav class="crumbs" aria-label="Breadcrumb">
+    @for (crumb of breadcrumbs.trail(); track $index; let last = $last) {
+      @if (crumb.url && !last) {
+        <a [routerLink]="crumb.url" [replaceUrl]="breadcrumbs.samePath(crumb.url)">{{ crumb.label }}</a>
+      } @else {
+        <span class="current" [attr.aria-current]="last ? 'page' : null">{{ crumb.label }}</span>
+      }
+      @if (!last) {
+        <span class="sep" aria-hidden="true">/</span>
+      }
+    }
   </nav>
 </header>
 <main class="content">

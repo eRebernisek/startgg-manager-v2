@@ -1,4 +1,4 @@
-import { BracketSet, BracketType, Entrant, Id, Seed, SetSlot } from './api/models';
+import { BracketSet, BracketType, Entrant, Id, Seed, SetSlot, SetState } from './api/models';
 
 export interface PositionedSet {
   set: BracketSet;
@@ -38,6 +38,98 @@ export function isHiddenSet(set: BracketSet): boolean {
   );
 }
 
+/** "Grand Final Reset" / "Reset da Grande Final" — the extra set after a losers win. */
+const GRAND_FINAL_RESET =
+  /grand\s*finals?\s*reset|reset\s+(?:d[ae]s?\s+)?grand(?:e|es)?\s+fin(?:als?|ais)/i;
+/** The Grand Final itself, not the reset. */
+const GRAND_FINAL = /^(?:grand\s*finals?|grand(?:e|es)?\s+fin(?:als?|ais))$/i;
+
+/**
+ * States that mean start.gg has actually opened the reset (not the placeholder row
+ * every double-elimination group ships with).
+ */
+const ACTIVE_RESET_STATES = new Set<number>([
+  SetState.InProgress,
+  SetState.Called,
+  SetState.Queued,
+  SetState.Completed,
+]);
+
+/**
+ * True for the Grand Final Reset: by its round label, or because both of its slots
+ * are fed by the Grand Final (winner and loser play again).
+ */
+export function isGrandFinalReset(set: BracketSet, byId: ReadonlyMap<string, BracketSet>): boolean {
+  if (GRAND_FINAL_RESET.test(set.fullRoundText ?? '')) return true;
+  const feederIds = set.slots
+    .filter((slot) => (slot.prereqType ?? '').toLowerCase() === 'set' && slot.prereqId)
+    .map((slot) => String(slot.prereqId));
+  if (feederIds.length < 2 || feederIds.some((id) => id !== feederIds[0])) return false;
+  const feeder = byId.get(feederIds[0]);
+  return !!feeder && GRAND_FINAL.test((feeder.fullRoundText ?? '').trim());
+}
+
+/**
+ * The reset is shown only once it will be played: the player coming from losers won
+ * Grand Final, or start.gg already filled / started / finished the reset set.
+ */
+export function grandFinalResetVisible(reset: BracketSet, byId: ReadonlyMap<string, BracketSet>): boolean {
+  if (reset.winnerId != null) return true;
+  if (reset.slots.some((slot) => slot.entrant)) return true;
+  if (ACTIVE_RESET_STATES.has(reset.state)) return true;
+  return losersWonGrandFinal(reset, byId);
+}
+
+function includeSet(set: BracketSet, byId: ReadonlyMap<string, BracketSet>): boolean {
+  return !isGrandFinalReset(set, byId) || grandFinalResetVisible(set, byId);
+}
+
+function losersWonGrandFinal(reset: BracketSet, byId: ReadonlyMap<string, BracketSet>): boolean {
+  const gfId = reset.slots.find(
+    (slot) => (slot.prereqType ?? '').toLowerCase() === 'set' && slot.prereqId,
+  )?.prereqId;
+  if (!gfId) return false;
+  const gf = byId.get(String(gfId));
+  if (!gf) return false;
+  // A partial score while the set is still being played is not a losers win.
+  if (gf.winnerId == null && gf.state !== SetState.Completed) return false;
+  const losersSlot = gf.slots.find((slot) => slotFromLosers(slot, byId));
+  if (!losersSlot) return false;
+
+  if (gf.winnerId != null) {
+    if (losersSlot.entrant && sameId(gf.winnerId, losersSlot.entrant.id)) return true;
+    const winnersWon = gf.slots.some(
+      (slot) => slot !== losersSlot && slot.entrant && sameId(gf.winnerId, slot.entrant.id),
+    );
+    if (winnersWon || (losersSlot.entrant && !sameId(gf.winnerId, losersSlot.entrant.id))) return false;
+  }
+
+  const losersScore = slotScore(losersSlot);
+  const otherScores = gf.slots
+    .filter((slot) => slot !== losersSlot)
+    .map((slot) => slotScore(slot))
+    .filter((score): score is number => typeof score === 'number');
+  return (
+    typeof losersScore === 'number' &&
+    losersScore >= 0 &&
+    otherScores.length > 0 &&
+    otherScores.every((score) => losersScore > score)
+  );
+}
+
+/** Slot is filled from the losers bracket (round < 0), skipping hidden bye sets. */
+function slotFromLosers(slot: SetSlot, byId: ReadonlyMap<string, BracketSet>, seen = new Set<string>()): boolean {
+  if ((slot.prereqType ?? '').toLowerCase() !== 'set' || !slot.prereqId) return false;
+  const id = String(slot.prereqId);
+  if (seen.has(id)) return false;
+  seen.add(id);
+  const src = byId.get(id);
+  if (!src) return false;
+  if ((src.round ?? 0) < 0) return true;
+  if (isHiddenSet(src)) return src.slots.some((next) => slotFromLosers(next, byId, seen));
+  return false;
+}
+
 /** Bracket view mode when `bracketType` from the API is missing or stale. */
 export function bracketViewMode(
   sets: BracketSet[],
@@ -61,9 +153,10 @@ function isEmptySlot(slot: SetSlot | undefined): boolean {
  */
 export function layoutElimination(sets: BracketSet[]): BracketSide[] {
   const byId = new Map(sets.map((s) => [String(s.id), s]));
+  const shown = sets.filter((s) => includeSet(s, byId));
   const sides: BracketSide[] = [];
   for (const key of ['winners', 'losers'] as const) {
-    const side = sets.filter((s) => sideOf(s) === key && !isHiddenSet(s));
+    const side = shown.filter((s) => sideOf(s) === key && !isHiddenSet(s));
     if (side.length) sides.push(layoutSide(key, side, byId));
   }
   return sides;
@@ -218,9 +311,10 @@ function layoutSide(
 export function groupByRound(
   sets: BracketSet[],
 ): { round: number; title: string; sets: BracketSet[] }[] {
+  const byId = new Map(sets.map((s) => [String(s.id), s]));
   const map = new Map<number, BracketSet[]>();
   for (const s of sets) {
-    if (isHiddenSet(s)) continue;
+    if (isHiddenSet(s) || !includeSet(s, byId)) continue;
     const r = s.round ?? 0;
     map.set(r, [...(map.get(r) ?? []), s]);
   }

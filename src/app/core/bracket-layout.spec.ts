@@ -2,6 +2,8 @@ import { BracketSet, Seed } from './api/models';
 import {
   BracketSide,
   bracketViewMode,
+  grandFinalResetVisible,
+  groupByRound,
   isHiddenSet,
   layoutElimination,
   roundRobinTable,
@@ -121,15 +123,10 @@ describe('layoutElimination — 4-player double elimination (live test event)', 
 
   it('is well formed', () => expectWellFormed(sides));
 
-  it('puts grand final reset after grand final even though they share a round', () => {
-    expect(winners.columns).toEqual([
-      'Winners Semi-Final',
-      'Winners Final',
-      'Grand Final',
-      'Grand Final Reset',
-    ]);
+  it('hides the grand final reset until it is actually needed', () => {
+    expect(winners.columns).toEqual(['Winners Semi-Final', 'Winners Final', 'Grand Final']);
     expect(idents(winners, 2)).toEqual(['D']);
-    expect(idents(winners, 3)).toEqual(['E']);
+    expect(winners.sets.some((p) => p.set.identifier === 'E')).toBe(false);
   });
 
   it('centres a set between its feeders', () => {
@@ -137,7 +134,6 @@ describe('layoutElimination — 4-player double elimination (live test event)', 
     expect(at(winners, 'B').y).toBe(1);
     expect(at(winners, 'C').y).toBe(0.5);
     expect(at(winners, 'D').y).toBe(0.5);
-    expect(at(winners, 'E').y).toBe(0.5);
     expect(winners.height).toBe(2);
   });
 
@@ -152,7 +148,7 @@ describe('layoutElimination — 4-player double elimination (live test event)', 
 
   it('builds edges only within a side', () => {
     expect(winners.edges).toContainEqual({ from: '9', to: '10', fromPlacement: 1, toSlot: 0 });
-    expect(winners.edges).toContainEqual({ from: '10', to: '11', fromPlacement: 1, toSlot: 0 });
+    expect(winners.edges.some((e) => e.to === '11')).toBe(false);
     expect(winners.edges.some((e) => e.from === '1')).toBe(false);
   });
 });
@@ -199,10 +195,11 @@ describe('layoutElimination — 13 players with byes', () => {
     expect(losers.height).toBe(4);
   });
 
-  it('lays out the preview bracket the same way, plus the grand final reset', () => {
+  it('omits the unplayed grand final reset and keeps the rest of the preview aligned', () => {
     const preview = layoutElimination(fromRows(DE13_PREVIEW));
     expectWellFormed(preview);
-    expect(preview[0].columns).toEqual([...winners.columns, 'Grand Final Reset']);
+    expect(preview[0].columns).toEqual(winners.columns);
+    expect(preview[0].sets.some((p) => p.set.identifier === 'N')).toBe(false);
     expect(preview[1].columns).toEqual(losers.columns);
     for (const side of [0, 1]) {
       for (const p of sides[side].sets) {
@@ -224,7 +221,6 @@ describe('layoutElimination — 8 players, no byes', () => {
       'Winners Semi-Final',
       'Winners Final',
       'Grand Final',
-      'Grand Final Reset',
     ]);
     expect(idents(winners, 0)).toEqual(['A', 'B', 'C', 'D']);
     expect(at(winners, 'E').y).toBe(0.5);
@@ -258,7 +254,7 @@ describe('layoutElimination — 2 players', () => {
     );
     expectWellFormed(sides);
     expect(sides.map((s) => s.key)).toEqual(['winners']);
-    expect(sides[0].columns).toEqual(['Winners Final', 'Grand Final', 'Grand Final Reset']);
+    expect(sides[0].columns).toEqual(['Winners Final', 'Grand Final']);
     expect(sides[0].sets.every((p) => p.y === 0)).toBe(true);
     expect(sides[0].height).toBe(1);
   });
@@ -267,6 +263,131 @@ describe('layoutElimination — 2 players', () => {
     const sides = layoutElimination(fromRows([[1, 'A', 1, 'Final', 'seed:1', 'seed:2']]));
     expect(sides).toHaveLength(1);
     expect(sides[0]).toMatchObject({ columns: ['Final'], height: 1, edges: [] });
+  });
+});
+
+describe('grand final reset visibility', () => {
+  function withGrandFinalWinner(rows: typeof DE4, winner: 'losers' | 'winners'): BracketSet[] {
+    const sets = fromRows(rows);
+    const gf = sets.find((s) => s.fullRoundText === 'Grand Final');
+    if (!gf) throw new Error('missing grand final');
+    const losersSlot = gf.slots.find((slot) => {
+      const src = sets.find((s) => String(s.id) === String(slot.prereqId));
+      return (src?.round ?? 0) < 0;
+    });
+    const winnersSlot = gf.slots.find((slot) => slot !== losersSlot);
+    if (!losersSlot || !winnersSlot) throw new Error('missing grand final slots');
+    winnersSlot.entrant = { id: 100, name: 'From Winners' };
+    losersSlot.entrant = { id: 200, name: 'From Losers' };
+    gf.state = 3;
+    gf.winnerId = winner === 'losers' ? 200 : 100;
+    return sets;
+  }
+
+  it('shows the reset after the losers player wins grand final, without moving earlier sets', () => {
+    const dormant = layoutElimination(fromRows(DE4));
+    const played = layoutElimination(withGrandFinalWinner(DE4, 'losers'));
+    expectWellFormed(played);
+    const winners = played[0];
+    expect(winners.columns).toEqual([
+      'Winners Semi-Final',
+      'Winners Final',
+      'Grand Final',
+      'Grand Final Reset',
+    ]);
+    expect(idents(winners, 3)).toEqual(['E']);
+    expect(at(winners, 'E').y).toBe(at(winners, 'D').y);
+    expect(winners.edges).toContainEqual({ from: '10', to: '11', fromPlacement: 1, toSlot: 0 });
+    expect(winners.edges).toContainEqual({ from: '10', to: '11', fromPlacement: 2, toSlot: 1 });
+    for (const placed of dormant[0].sets) {
+      expect(at(winners, placed.set.identifier!)).toMatchObject({ col: placed.col, y: placed.y });
+    }
+  });
+
+  it('hides the reset while grand final is in progress, even if losers lead 2–1', () => {
+    const sets = fromRows(DE4);
+    const gf = sets.find((s) => s.fullRoundText === 'Grand Final');
+    if (!gf) throw new Error('missing grand final');
+    gf.state = 2;
+    gf.winnerId = null;
+    gf.slots[0].entrant = { id: 100, name: 'From Winners' };
+    gf.slots[0].standing = { stats: { score: { value: 1 } } };
+    gf.slots[1].entrant = { id: 200, name: 'From Losers' };
+    gf.slots[1].standing = { stats: { score: { value: 2 } } };
+    expect(layoutElimination(sets)[0].columns).not.toContain('Grand Final Reset');
+  });
+
+  it('uses the final score when grand final is completed without a winner id', () => {
+    const sets = fromRows(DE4);
+    const gf = sets.find((s) => s.fullRoundText === 'Grand Final');
+    if (!gf) throw new Error('missing grand final');
+    gf.state = 3;
+    gf.winnerId = null;
+    gf.slots[0].entrant = { id: 100, name: 'From Winners' };
+    gf.slots[0].standing = { stats: { score: { value: 1 } } };
+    gf.slots[1].entrant = { id: 200, name: 'From Losers' };
+    gf.slots[1].standing = { stats: { score: { value: 2 } } };
+    const sides = layoutElimination(sets);
+    expectWellFormed(sides);
+    expect(sides[0].columns).toContain('Grand Final Reset');
+  });
+
+  it('keeps the reset hidden when the winners player wins grand final', () => {
+    const sides = layoutElimination(withGrandFinalWinner(DE4, 'winners'));
+    expectWellFormed(sides);
+    expect(sides[0].columns).not.toContain('Grand Final Reset');
+  });
+
+  it('shows a reset start.gg already filled or started, even before grand final has a winner', () => {
+    const filled = fromRows(DE4);
+    const reset = filled.find((s) => s.identifier === 'E');
+    if (!reset) throw new Error('missing reset');
+    reset.slots[0].entrant = { id: 200, name: 'From Losers' };
+    reset.slots[1].entrant = { id: 100, name: 'From Winners' };
+    expect(layoutElimination(filled)[0].columns).toContain('Grand Final Reset');
+
+    const called = fromRows(DE4);
+    const calledReset = called.find((s) => s.identifier === 'E');
+    if (!calledReset) throw new Error('missing reset');
+    calledReset.state = 6;
+    const byId = new Map(called.map((s) => [String(s.id), s]));
+    expect(grandFinalResetVisible(calledReset, byId)).toBe(true);
+    expect(layoutElimination(called)[0].columns).toContain('Grand Final Reset');
+    expectWellFormed(layoutElimination(called));
+  });
+
+  it('drops a dormant reset from round groups and keeps an active one', () => {
+    expect(groupByRound(fromRows(DE4)).some((g) => g.title === 'Grand Final Reset')).toBe(false);
+    const live = fromRows(DE8);
+    const reset = live.find((s) => s.fullRoundText === 'Grand Final Reset');
+    if (!reset) throw new Error('missing reset');
+    reset.state = 2;
+    expect(groupByRound(live).some((g) => g.sets.some((s) => s.id === reset.id))).toBe(true);
+  });
+
+  it('understands a Portuguese reset label', () => {
+    const sets = fromRows([
+      [1, 'A', 1, 'Final de Vencedores', 'seed:1', 'seed:2'],
+      [2, 'C', -1, 'Final de Perdedores', 'set:1:2', 'bye'],
+      [3, 'B', 2, 'Grande Final', 'set:1:1', 'set:2:1'],
+      [4, 'D', 2, 'Reset da Grande Final', 'set:3:1', 'set:3:2'],
+    ]);
+    expect(layoutElimination(sets)[0].columns).toEqual(['Final de Vencedores', 'Grande Final']);
+    const gf = sets.find((s) => s.id === 3);
+    if (!gf) throw new Error('missing gf');
+    gf.slots[0].entrant = { id: 1, name: 'W' };
+    gf.slots[1].entrant = { id: 2, name: 'L' };
+    gf.winnerId = 2;
+    gf.state = 3;
+    const shown = layoutElimination(sets);
+    expectWellFormed(shown);
+    expect(shown[0].columns).toEqual(['Final de Vencedores', 'Grande Final', 'Reset da Grande Final']);
+  });
+
+  it('matches a bracket that never included the reset set', () => {
+    const all = fromRows(DE4);
+    const stripped = all.filter((s) => s.fullRoundText !== 'Grand Final Reset');
+    expect(layoutElimination(all)).toEqual(layoutElimination(stripped));
   });
 });
 

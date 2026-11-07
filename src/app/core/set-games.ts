@@ -1,9 +1,6 @@
 import { BracketSet, BracketSetGameDataInput, Character, Id, SetGame } from './api/models';
 import { sameId } from './bracket-layout';
 
-/** Cap for the set editor (best-of-3 style). */
-export const MAX_SET_GAMES = 3;
-
 export interface EditableGame {
   orderNum: number;
   winnerId: Id | null;
@@ -30,11 +27,11 @@ export function nextGameFromPrevious(prev: EditableGame | undefined, orderNum: n
   };
 }
 
-/** Build editor rows from API games (or one empty row). Caps at {@link MAX_SET_GAMES}. */
+/** Build editor rows from API games (or one empty row). Keeps every game, including MD5 and beyond. */
 export function editableGamesFromSet(set: BracketSet, entrant1Id?: Id | null, entrant2Id?: Id | null): EditableGame[] {
   const api = [...(set.games ?? [])].sort((a, b) => (a.orderNum ?? 0) - (b.orderNum ?? 0));
   if (api.length === 0) return [blankGame(1)];
-  return api.slice(0, MAX_SET_GAMES).map((g, i) => fromApiGame(g, i + 1, entrant1Id, entrant2Id));
+  return api.map((g, i) => fromApiGame(g, i + 1, entrant1Id, entrant2Id));
 }
 
 function fromApiGame(
@@ -107,8 +104,30 @@ export function toGameData(
     });
 }
 
+export interface SetWinnerChoice {
+  /** 0 or 1, or null when the set has no winner yet. */
+  side: 0 | 1 | null;
+  /** True when `side` was filled from game wins, not picked on the set itself. */
+  fromGames: boolean;
+}
+
+/**
+ * Game wins decide the set winner. A tie clears that winner only when it was derived
+ * from the games — a winner the user picked on the set itself stays put.
+ */
+export function syncSetWinner(
+  games: readonly EditableGame[],
+  entrant1Id: Id,
+  entrant2Id: Id,
+  current: SetWinnerChoice,
+): SetWinnerChoice {
+  const derived = deriveSetWinnerId(games, entrant1Id, entrant2Id);
+  if (derived == null) return current.fromGames ? { side: null, fromGames: false } : current;
+  return { side: sameId(derived, entrant1Id) ? 0 : 1, fromGames: true };
+}
+
 /** Overall set winner from game wins (ties / incomplete → null). */
-export function deriveSetWinnerId(games: EditableGame[], entrant1Id: Id, entrant2Id: Id): Id | null {
+export function deriveSetWinnerId(games: readonly EditableGame[], entrant1Id: Id, entrant2Id: Id): Id | null {
   const [a, b] = countGameWins(games, entrant1Id, entrant2Id);
   if (a === b) return null;
   return a > b ? entrant1Id : entrant2Id;

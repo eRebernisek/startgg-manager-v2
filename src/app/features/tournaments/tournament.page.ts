@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { Tournament } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { shortSlug, startggAdminUrl } from '../../core/bracket-url';
+import { BreadcrumbService, tournamentCrumbKey } from '../../core/breadcrumbs';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { errorMessage, formatDate, profileImage } from '../../shared/display';
 
@@ -54,6 +55,7 @@ import { errorMessage, formatDate, profileImage } from '../../shared/display';
 })
 export class TournamentPage {
   private readonly api = inject(StartggApi);
+  private readonly breadcrumbs = inject(BreadcrumbService);
   readonly tournament = input.required<string>();
 
   protected readonly data = signal<Tournament | null>(null);
@@ -76,9 +78,12 @@ export class TournamentPage {
     this.error.set(null);
     try {
       const t = await this.api.tournament(slug);
+      if (slug !== this.tournament()) return;
       if (!t) throw new Error(`Tournament "${slug}" not found.`);
       this.data.set(t);
+      this.breadcrumbs.setLabel(tournamentCrumbKey(slug), t.name);
     } catch (e) {
+      if (slug !== this.tournament()) return;
       this.error.set(errorMessage(e));
     } finally {
       this.loading.set(false);

@@ -1,12 +1,24 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
-import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { BracketSet, Character, Entrant, Id, SetState } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
+import { AppNavigation } from '../../core/app-navigation';
 import { isDQSlot, isPreviewSet, sameId } from '../../core/bracket-layout';
 import { planSetSave, planSetScoreSave } from '../../core/plan-set-save';
 import {
   EditableGame,
-  MAX_SET_GAMES,
   blankGame,
   characterIconUrl,
   deriveSetWinnerId,
@@ -14,6 +26,8 @@ import {
   editableGamesFromSet,
   gamesEqual,
   nextGameFromPrevious,
+  SetWinnerChoice,
+  syncSetWinner,
   toGameData,
 } from '../../core/set-games';
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
@@ -55,6 +69,9 @@ export class SetEditorDialog implements OnInit {
   protected readonly store = inject(EventStore);
   protected readonly ref = inject(DialogRef);
   private readonly setId = inject<Id>(DIALOG_DATA);
+  private readonly navigation = inject(AppNavigation);
+  private readonly gamesList = viewChild<ElementRef<HTMLElement>>('gamesList');
+  private readonly gamesActions = viewChild<ElementRef<HTMLElement>>('gamesActions');
 
   protected readonly set = signal<BracketSet | null>(null);
   protected readonly winner = signal<Side | null>(null);
@@ -66,6 +83,8 @@ export class SetEditorDialog implements OnInit {
   private initialGames: EditableGame[] = [blankGame(1)];
   private initialWinner: Side | null = null;
   private initialDq = false;
+  /** Whether {@link winner} was derived from game wins (so a later tie can clear it). */
+  private winnerFromGames = false;
 
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -73,8 +92,20 @@ export class SetEditorDialog implements OnInit {
 
   protected readonly sides: Side[] = [0, 1];
   protected readonly stateLabel = setStateLabel;
-  protected readonly maxGames = MAX_SET_GAMES;
   protected readonly iconUrl = characterIconUrl;
+
+  constructor() {
+    const navigation = this.navigation;
+    effect((onCleanup) => {
+      if (!this.charPicker()) return;
+      onCleanup(
+        navigation.registerOverlay(() => {
+          this.closeCharacterPicker();
+          return true;
+        }),
+      );
+    });
+  }
 
   protected readonly entrants = computed<(Entrant | null)[]>(() => {
     const s = this.set();
@@ -96,7 +127,6 @@ export class SetEditorDialog implements OnInit {
       !gamesEqual(this.games(), this.initialGames)
     );
   });
-  protected readonly canAddGame = computed(() => this.games().length < MAX_SET_GAMES);
   /** Game wins, or slot standings — never a fake `0 – 0` on a completed set. */
   protected readonly gameScoreLabel = computed(() => {
     const s = this.set();
@@ -120,6 +150,11 @@ export class SetEditorDialog implements OnInit {
   protected openPlayer(entrant: Entrant | null): void {
     const playerId = entrant?.participants?.[0]?.player?.id;
     if (playerId) openPlayerDialog(this.dialog, this.injector, playerId);
+  }
+
+  protected pickSetWinner(side: Side): void {
+    this.winnerFromGames = false;
+    this.winner.set(side);
   }
 
   protected setGameWinner(index: number, side: Side): void {
@@ -172,11 +207,12 @@ export class SetEditorDialog implements OnInit {
   }
 
   protected addGame(): void {
-    if (!this.canAddGame()) return;
+    if (!this.canMutate() || this.busy()) return;
     this.games.update((list) => {
       const prev = list[list.length - 1];
       return [...list, nextGameFromPrevious(prev, list.length + 1)];
     });
+    afterNextRender(() => this.scrollGamesToBottom(), { injector: this.injector });
   }
 
   protected removeGame(index: number): void {
@@ -185,6 +221,26 @@ export class SetEditorDialog implements OnInit {
       return list.filter((_, i) => i !== index).map((g, i) => ({ ...g, orderNum: i + 1 }));
     });
     this.syncOverallFromGames();
+  }
+
+  /** Removes the last game in the list (bottom "Remove game" control). */
+  protected removeLastGame(): void {
+    const last = this.games().length - 1;
+    if (last < 1) return;
+    this.removeGame(last);
+  }
+
+  private scrollGamesToBottom(): void {
+    const actions = this.gamesActions()?.nativeElement;
+    const list = this.gamesList()?.nativeElement;
+    const target = actions ?? list?.lastElementChild;
+    if (!(target instanceof HTMLElement)) return;
+    const body = target.closest('.body');
+    if (body instanceof HTMLElement) {
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
 
   protected sameWinner(winnerId: Id | null, side: Side): boolean {
@@ -239,6 +295,7 @@ export class SetEditorDialog implements OnInit {
         return Promise.resolve();
       }
       side = sameId(derived, e0.id) ? 0 : 1;
+      this.winnerFromGames = true;
       this.winner.set(side);
     }
 
@@ -304,9 +361,12 @@ export class SetEditorDialog implements OnInit {
   private syncOverallFromGames(): void {
     const [e0, e1] = this.entrants();
     if (!e0 || !e1) return;
-    const derived = deriveSetWinnerId(this.games(), e0.id, e1.id);
-    if (derived == null) return;
-    this.winner.set(sameId(derived, e0.id) ? 0 : 1);
+    const next: SetWinnerChoice = syncSetWinner(this.games(), e0.id, e1.id, {
+      side: this.winner(),
+      fromGames: this.winnerFromGames,
+    });
+    this.winnerFromGames = next.fromGames;
+    this.winner.set(next.side);
   }
 
   private async mutate(success: string, action: () => Promise<unknown>): Promise<void> {
@@ -329,6 +389,7 @@ export class SetEditorDialog implements OnInit {
     this.set.set(set);
     if (!set) return;
     const { winner, dq } = initialChoice(set);
+    this.winnerFromGames = false;
     this.winner.set(winner);
     this.dq.set(dq);
     const e0 = set.slots[0]?.entrant?.id;

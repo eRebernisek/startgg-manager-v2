@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AppNavigation } from './core/app-navigation';
 import { AuthService } from './core/auth.service';
+import { BreadcrumbService } from './core/breadcrumbs';
 import { ToastService } from './core/toast.service';
 
 @Component({
@@ -13,4 +15,6 @@ import { ToastService } from './core/toast.service';
 export class App {
   protected readonly auth = inject(AuthService);
   protected readonly toast = inject(ToastService);
+  protected readonly navigation = inject(AppNavigation);
+  protected readonly breadcrumbs = inject(BreadcrumbService);
 }

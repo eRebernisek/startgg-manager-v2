@@ -1,5 +1,5 @@
 import { BracketSet, SetState } from './api/models';
-import { blankGame, deriveSetWinnerId, nextGameFromPrevious, toGameData } from './set-games';
+import { blankGame, countGameWins, deriveSetWinnerId, nextGameFromPrevious, toGameData } from './set-games';
 import { planSetSave, planSetScoreSave } from './plan-set-save';
 
 function baseSet(extra: Partial<BracketSet> = {}): BracketSet {
@@ -154,6 +154,19 @@ describe('set-games helpers', () => {
         ],
       },
     ]);
+  });
+
+  it('keeps an MD5 (3–2) in the reported payload', () => {
+    const games = [1, 2, 1, 2, 1].map((winnerId, i) => ({ ...blankGame(i + 1), winnerId }));
+    expect(countGameWins(games, 1, 2)).toEqual([3, 2]);
+    expect(deriveSetWinnerId(games, 1, 2)).toBe(1);
+    const gameData = toGameData(games, 1, 2);
+    expect(gameData.map((g) => g.gameNum)).toEqual([1, 2, 3, 4, 5]);
+    expect(gameData.map((g) => g.winnerId)).toEqual([1, 2, 1, 2, 1]);
+    expect(planSetSave(baseSet(), { winnerId: 1, isDQ: false, gameData })).toMatchObject({
+      action: 'report',
+      gameData,
+    });
   });
 
   it('copies characters onto the next game', () => {
