@@ -34,7 +34,7 @@ Hash routing (`#/…`) is enabled, so no server rewrite rules are needed.
 
 GitHub Pages: see [GITHUB_PAGES.md](./GITHUB_PAGES.md). Local token-less reads also work via `npm start` → `/sgg-public`.
 
-## Deploy — Android APK (Capacitor)
+## Deploy — Android (Capacitor)
 
 Prerequisites: JDK 21+, Android SDK / Android Studio.
 
@@ -45,6 +45,13 @@ npx cap open android    # Android Studio → Build → Build APK(s)
 # or:
 cd android && ./gradlew assembleDebug
 # APK: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Signed Play upload (`versionName` 1.0.0, `versionCode` 1): see [ANDROID_RELEASE.md](./ANDROID_RELEASE.md).
+
+```bash
+npm run android:release
+# AAB: android/app/build/outputs/bundle/release/app-release.aab
 ```
 
 App id: `gg.startmanager.app`. On Android, CapacitorHttp is enabled so an experimental token-less read against the website endpoint can work; prefer a personal token for editing.
