@@ -60,5 +60,10 @@ android/captures/
 *.apk
 *.aab
 
+# Android release signing (never commit real keystores / passwords)
+*.jks
+*.keystore
+android/keystore.properties
+
 # Local screenshots / scratch
 .screenshots/

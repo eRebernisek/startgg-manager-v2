@@ -1,6 +1,6 @@
 {
   "name": "startgg-manager-v2",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -10,7 +10,8 @@
     "test": "ng test --watch=false",
     "test:watch": "ng test",
     "cap:sync": "npm run build && npx cap sync android",
-    "android": "npm run cap:sync && npx cap open android"
+    "android": "npm run cap:sync && npx cap open android",
+    "android:release": "ng build --configuration=production && npx cap sync android && cd android && ./gradlew bundleRelease"
   },
   "private": true,
   "packageManager": "npm@10.9.8",

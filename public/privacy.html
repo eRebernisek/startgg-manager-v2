@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — SGG Manager</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --fg: #e8eaed;
+        --muted: #9aa0a6;
+        --bg: #0f1115;
+        --link: #8ab4f8;
+        --border: #2a2f3a;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --fg: #202124;
+          --muted: #5f6368;
+          --bg: #f8f9fa;
+          --link: #1a73e8;
+          --border: #dadce0;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        line-height: 1.55;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.5rem;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin: 1.5rem 0 0.5rem;
+      }
+      p,
+      ul {
+        margin: 0.5rem 0;
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      a {
+        color: var(--link);
+      }
+      code {
+        font-size: 0.9em;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 2.5rem 0;
+      }
+      .lang {
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 0 0 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="lang">English</p>
+      <h1>Privacy Policy</h1>
+      <p class="meta">SGG Manager · Last updated: November 9, 2026</p>
+
+      <h2>Introduction</h2>
+      <p>
+        This Privacy Policy describes how <strong>SGG Manager</strong> (“the App”), published by
+        <strong>ManyTheDeveloper</strong>, handles information when you use the App on web or Android.
+        The App lets you view start.gg tournament brackets and, when you supply your own credentials,
+        manage sets, entrants, and seeding.
+      </p>
+
+      <h2>Information we collect / store</h2>
+      <p>
+        The App does <strong>not</strong> operate a developer backend that collects personal accounts
+        or telemetry. Depending on features you use, the following may be stored
+        <strong>only on your device</strong> (for example Capacitor Preferences / SharedPreferences
+        or browser local storage):
+      </p>
+      <ul>
+        <li>
+          Your personal start.gg <strong>API token</strong> (optional; required to edit sets and
+          seeding via the official start.gg API)
+        </li>
+        <li>
+          An optional start.gg website session value (<code>gg_session</code>), used only for
+          unofficial website-API features such as certain entrant actions
+        </li>
+        <li>
+          Optional settings you choose in the App (for example a CORS proxy URL for web builds)
+        </li>
+      </ul>
+      <p>
+        The developer does not receive copies of your API token, session value, or other credentials
+        entered in the App.
+      </p>
+
+      <h2>How we use data</h2>
+      <p>On-device credentials and settings are used solely to:</p>
+      <ul>
+        <li>Authenticate requests you initiate to start.gg so you can view and manage your tournaments</li>
+        <li>Remember your preferences between sessions on that device</li>
+      </ul>
+      <p>
+        We do not sell, rent, or share your personal data, tokens, or session values with third
+        parties for advertising or analytics.
+      </p>
+
+      <h2>Third parties &amp; network access</h2>
+      <p>
+        When you use the App, network requests are sent over <strong>HTTPS</strong> to
+        <strong>start.gg</strong> endpoints (for example the public GraphQL API and, when needed,
+        start.gg website GraphQL). Your token or session is included only as needed for those
+        requests and only to start.gg (or to a proxy you configure yourself).
+      </p>
+      <p>
+        On some web deployments, token-less reads or website-API calls may go through a
+        <strong>user-configured or shipped CORS proxy URL</strong> that forwards requests to
+        start.gg. That proxy is not used to store your credentials for the developer; treat any
+        proxy you choose as part of your own network path.
+      </p>
+      <p>
+        start.gg’s own privacy practices apply to data that service receives. This policy covers
+        only the App’s handling of information.
+      </p>
+      <p>
+        The App does not include developer-operated analytics, advertising, or crash-reporting SDKs
+        that identify you.
+      </p>
+
+      <h2>Data retention</h2>
+      <p>
+        Credentials and settings remain on your device until you clear them in
+        <strong>Settings</strong> or uninstall the App (or clear site data for the web version).
+        The developer does not retain a separate copy.
+      </p>
+
+      <h2>Security</h2>
+      <p>
+        Sensitive values are stored in on-device preferences and transmitted only over HTTPS to the
+        destinations described above. No method of electronic storage or transmission is perfectly
+        secure; protect your device and treat API tokens and session cookies like passwords.
+        Revoke a start.gg token or log out of start.gg if you believe credentials were exposed.
+      </p>
+
+      <h2>Children’s privacy</h2>
+      <p>
+        The App is not directed at children under 13. We do not knowingly collect personal
+        information from children under 13. If you believe a child has provided credentials through
+        the App, clear them in Settings or uninstall the App and contact us using the method below.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        We may update this Privacy Policy from time to time. The “Last updated” date at the top
+        will change when we do. Continued use of the App after an update constitutes acceptance of
+        the revised policy where permitted by law.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this Privacy Policy or the App: email
+        <a href="mailto:eder.rebernisek@gmail.com">eder.rebernisek@gmail.com</a>
+        (ManyTheDeveloper), open an issue on the
+        <a href="https://github.com/erebernisek/startgg-manager-v2">project repository on GitHub</a>,
+        or visit the project site at
+        <a href="https://erebernisek.github.io/startgg-manager-v2/">https://erebernisek.github.io/startgg-manager-v2/</a>.
+      </p>
+
+      <h2>Affiliation</h2>
+      <p>
+        SGG Manager is an independent third-party tool. It is
+        <strong>not affiliated with, endorsed by, or sponsored by start.gg, Smash.gg, or NASE</strong>
+        (or their parent companies). start.gg, Smash.gg, and related marks belong to their respective
+        owners.
+      </p>
+
+      <hr />
+
+      <p class="lang">Português (Brasil)</p>
+      <h1>Política de Privacidade</h1>
+      <p class="meta">SGG Manager · Última atualização: 9 de novembro de 2026</p>
+
+      <h2>Introdução</h2>
+      <p>
+        Esta Política de Privacidade descreve como o <strong>SGG Manager</strong> (“o App”),
+        publicado por <strong>ManyTheDeveloper</strong>, trata informações quando você usa o App na
+        web ou no Android. O App permite visualizar chaves (brackets) de torneios no start.gg e,
+        quando você fornece suas próprias credenciais, gerenciar sets, participantes e seeding.
+      </p>
+
+      <h2>Informações que coletamos / armazenamos</h2>
+      <p>
+        O App <strong>não</strong> opera um backend do desenvolvedor que colete contas pessoais ou
+        telemetria. Conforme os recursos que você usar, os itens abaixo podem ser armazenados
+        <strong>apenas no seu dispositivo</strong> (por exemplo Capacitor Preferences /
+        SharedPreferences ou armazenamento local do navegador):
+      </p>
+      <ul>
+        <li>
+          Seu <strong>token de API</strong> pessoal do start.gg (opcional; necessário para editar
+          sets e seeding pela API oficial)
+        </li>
+        <li>
+          Um valor opcional de sessão do site start.gg (<code>gg_session</code>), usado somente em
+          recursos da API não oficial do site (por exemplo certas ações de participantes)
+        </li>
+        <li>
+          Configurações opcionais que você escolher no App (por exemplo URL de proxy CORS em builds
+          web)
+        </li>
+      </ul>
+      <p>
+        O desenvolvedor não recebe cópias do seu token de API, valor de sessão ou outras
+        credenciais inseridas no App.
+      </p>
+
+      <h2>Como usamos os dados</h2>
+      <p>Credenciais e configurações no dispositivo são usadas apenas para:</p>
+      <ul>
+        <li>
+          Autenticar requisições que você inicia ao start.gg para visualizar e gerenciar seus
+          torneios
+        </li>
+        <li>Lembrar suas preferências entre sessões naquele dispositivo</li>
+      </ul>
+      <p>
+        Não vendemos, alugamos nem compartilhamos seus dados pessoais, tokens ou valores de sessão
+        com terceiros para publicidade ou analytics.
+      </p>
+
+      <h2>Terceiros e acesso à rede</h2>
+      <p>
+        Ao usar o App, as requisições de rede são enviadas via <strong>HTTPS</strong> para
+        endpoints do <strong>start.gg</strong>. Seu token ou sessão é incluído somente quando
+        necessário e somente para o start.gg (ou para um proxy que você mesmo configurar).
+      </p>
+      <p>
+        Em alguns deploys web, leituras sem token ou chamadas à API do site podem passar por uma
+        <strong>URL de proxy CORS configurada por você ou fornecida com o App</strong> que
+        encaminha requisições ao start.gg. Trate qualquer proxy escolhido como parte do seu
+        próprio caminho de rede.
+      </p>
+      <p>
+        As práticas de privacidade do start.gg aplicam-se aos dados que aquele serviço recebe.
+        Esta política cobre apenas o tratamento de informações pelo App.
+      </p>
+      <p>
+        O App não inclui SDKs de analytics, publicidade ou relatórios de falha operados pelo
+        desenvolvedor que identifiquem você.
+      </p>
+
+      <h2>Retenção de dados</h2>
+      <p>
+        Credenciais e configurações permanecem no seu dispositivo até você limpá-las em
+        <strong>Configurações</strong> ou desinstalar o App (ou limpar os dados do site na versão
+        web). O desenvolvedor não mantém uma cópia separada.
+      </p>
+
+      <h2>Segurança</h2>
+      <p>
+        Valores sensíveis são guardados nas preferências do dispositivo e transmitidos apenas via
+        HTTPS aos destinos descritos acima. Nenhum método de armazenamento ou transmissão é
+        perfeitamente seguro; proteja seu dispositivo e trate tokens e cookies de sessão como
+        senhas. Revogue o token no start.gg ou saia da conta se acreditar que as credenciais foram
+        expostas.
+      </p>
+
+      <h2>Privacidade de crianças</h2>
+      <p>
+        O App não é direcionado a crianças menores de 13 anos. Não coletamos de forma consciente
+        informações pessoais de menores de 13 anos. Se acreditar que uma criança forneceu
+        credenciais pelo App, limpe-as em Configurações ou desinstale o App e entre em contato pelo
+        método abaixo.
+      </p>
+
+      <h2>Alterações nesta política</h2>
+      <p>
+        Podemos atualizar esta Política de Privacidade periodicamente. A data de “Última
+        atualização” no topo mudará quando isso ocorrer. O uso continuado do App após uma
+        atualização constitui aceitação da política revisada, quando a lei permitir.
+      </p>
+
+      <h2>Contato</h2>
+      <p>
+        Dúvidas sobre esta política ou sobre o App: envie um e-mail para
+        <a href="mailto:eder.rebernisek@gmail.com">eder.rebernisek@gmail.com</a>
+        (ManyTheDeveloper), abra uma issue no
+        <a href="https://github.com/erebernisek/startgg-manager-v2">repositório do projeto no GitHub</a>
+        ou visite o site do projeto em
+        <a href="https://erebernisek.github.io/startgg-manager-v2/">https://erebernisek.github.io/startgg-manager-v2/</a>.
+      </p>
+
+      <h2>Afiliação</h2>
+      <p>
+        O SGG Manager é uma ferramenta independente de terceiros. Ele
+        <strong>não é afiliado, endossado ou patrocinado pelo start.gg, Smash.gg ou NASE</strong>
+        (nem por suas empresas controladoras). start.gg, Smash.gg e marcas relacionadas pertencem
+        aos seus respectivos proprietários.
+      </p>
+    </main>
+  </body>
+</html>

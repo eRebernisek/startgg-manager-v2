@@ -51,7 +51,7 @@ export const pt: Record<keyof typeof en, string> = {
   'state.queued': 'Na fila',
   'state.unknown': 'Estado {n}',
 
-  'home.title': 'Start.gg Manager',
+  'home.title': 'SGG Manager',
   'home.viewTitle': 'Ver uma chave',
   'home.viewBody':
     'Cole qualquer link de torneio, evento ou chave do start.gg (por exemplo {example}). Dá para ver sem token. Adicione um token de API pessoal em Configurações para editar quando você for admin desse torneio.',
@@ -98,6 +98,10 @@ export const pt: Record<keyof typeof en, string> = {
   'settings.withoutTokenTitle': 'Sem token',
   'settings.withoutTokenBody':
     'O modo somente leitura usa o GraphQL do site start.gg (mesma abordagem do TournamentStreamHelper) — sem token de API pessoal e sem chave compartilhada. Navegadores não chamam esse endpoint direto (CORS), então builds web de produção passam pelo encaminhador em proxy/. Android e npm start local (/sgg-public) falam com ele sem esse Worker. Editar ainda precisa do seu token de API pessoal (e direitos de admin).',
+  'settings.aboutTitle': 'Sobre',
+  'settings.disclaimer':
+    'Não afiliado, endossado ou patrocinado pelo start.gg ou Smash.gg. Esta é uma ferramenta independente de terceiros.',
+  'settings.privacyLink': 'Política de privacidade',
   'settings.authInvalid': 'Seu token do start.gg é inválido. Entre de novo.',
 
   'tournaments.filter': 'Filtrar…',

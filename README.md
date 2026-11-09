@@ -1,6 +1,12 @@
-# Start.gg Manager v2
+# SGG Manager
 
 Angular + Capacitor app to **view** start.gg brackets and **edit** them when you have an admin personal API token (report sets, reset, call/start, seeding). Inspired by [TournamentStreamHelper](https://github.com/joaorb64/TournamentStreamHelper).
+
+**Not affiliated with start.gg.** Display name: *SGG Manager* (`applicationId` `gg.startmanager.app`). Published by **ManyTheDeveloper**.
+
+- Website: https://erebernisek.github.io/startgg-manager-v2/
+- Support: [eder.rebernisek@gmail.com](mailto:eder.rebernisek@gmail.com) · [GitHub issues](https://github.com/erebernisek/startgg-manager-v2/issues)
+- Play Store listing brief: [PLAY_STORE_PUBLISH.md](./PLAY_STORE_PUBLISH.md)
 
 See [PLAN.md](./PLAN.md) for architecture decisions and API limits.
 
@@ -34,9 +40,11 @@ Hash routing (`#/…`) is enabled, so no server rewrite rules are needed.
 
 GitHub Pages: see [GITHUB_PAGES.md](./GITHUB_PAGES.md). Local token-less reads also work via `npm start` → `/sgg-public`.
 
-## Deploy — Android APK (Capacitor)
+## Deploy — Android APK / Play Store AAB (Capacitor)
 
 Prerequisites: JDK 21+, Android SDK / Android Studio.
+
+### Debug APK
 
 ```bash
 npm run build
@@ -47,7 +55,35 @@ cd android && ./gradlew assembleDebug
 # APK: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+### Release signing (Play Store upload key)
+
+Do **not** commit a real keystore or passwords. Generate a local upload keystore once and keep backups offline:
+
+```bash
+keytool -genkey -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+cp android/keystore.properties.example android/keystore.properties
+# Edit android/keystore.properties: storeFile, storePassword, keyAlias, keyPassword
+```
+
+`android/app/build.gradle` loads `android/keystore.properties` when present and wires `signingConfigs.release`. Ignored: `*.jks`, `*.keystore`, `android/keystore.properties`.
+
+### Play Store AAB
+
+```bash
+npm run android:release
+# AAB: android/app/build/outputs/bundle/release/app-release.aab
+```
+
+That runs a production `ng build`, `npx cap sync android`, then `./gradlew bundleRelease`. Without `keystore.properties`, Gradle still builds an unsigned/debug-signed release bundle — create the keystore before uploading to Play.
+
+### Version bumps
+
+- `android/app/build.gradle`: `versionCode` (integer, must increase every Play upload) and `versionName` (user-visible, e.g. `"1.0.0"`).
+- Keep `package.json` `"version"` in sync with `versionName`.
+
 App id: `gg.startmanager.app`. On Android, CapacitorHttp is enabled so an experimental token-less read against the website endpoint can work; prefer a personal token for editing.
+
+Privacy policy (GitHub Pages, after deploy): https://erebernisek.github.io/startgg-manager-v2/privacy.html — also linked from **Settings → About**.
 
 ## Features
 
@@ -112,10 +148,7 @@ start.gg rejects seeding once a pool has started (`Cannot modify seeds in starte
 
 ## Secrets
 
-Never commit tokens. Ignored:
+Never commit tokens or signing material. Ignored:
 
 - `startGGApiKey.txt`, `*.token`, `.env*`
-
-## Smoke test
-
-See [SMOKE_TEST.md](./SMOKE_TEST.md).
+- `*.jks`, `*.keystore`, `android/keystore.properties`

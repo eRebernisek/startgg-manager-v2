@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'gg.startmanager.app',
-  appName: 'Start.gg Manager',
+  appName: 'SGG Manager',
   webDir: 'dist/startgg-manager-v2/browser',
   plugins: {
     // Routes window.fetch through native HTTP on Android, which bypasses CORS.

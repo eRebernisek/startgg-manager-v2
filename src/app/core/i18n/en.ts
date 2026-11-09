@@ -53,7 +53,7 @@ export const en = {
   'state.unknown': 'State {n}',
 
   // Home
-  'home.title': 'Start.gg Manager',
+  'home.title': 'SGG Manager',
   'home.viewTitle': 'View a bracket',
   'home.viewBody':
     'Paste any start.gg tournament, event or bracket link (for example {example}). Viewing works without a token. Add a personal API token in Settings to edit when you are an admin of that tournament.',
@@ -101,6 +101,10 @@ export const en = {
   'settings.withoutTokenTitle': 'Without a token',
   'settings.withoutTokenBody':
     'View-only mode uses start.gg’s website GraphQL (same approach as TournamentStreamHelper) — no personal API token and no shared API key. Browsers cannot call that endpoint directly (CORS), so production web builds go through the small forwarder in proxy/. Android and local npm start (/sgg-public) talk to it without that Worker. Editing still needs your personal API token (and admin rights).',
+  'settings.aboutTitle': 'About',
+  'settings.disclaimer':
+    'Not affiliated with, endorsed by, or sponsored by start.gg or Smash.gg. This is an independent third-party tool.',
+  'settings.privacyLink': 'Privacy policy',
   'settings.authInvalid': 'Your start.gg token is invalid. Please sign in again.',
 
   // Tournaments list / detail

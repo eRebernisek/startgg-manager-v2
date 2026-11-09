@@ -25,8 +25,8 @@ Browser + Capacitor Android app to view start.gg brackets and (with an admin per
 - [x] Auth validate-before-save; clear on auth errors + toast
 - [x] Bracket (SVG connectors), sets list, set editor, entrants (list + add/rename/remove via website API), seeding
 - [x] Unit tests (`npm test`) + production build (`npm run build`)
-- [x] Live read-only smoke test → `SMOKE_TEST.md`
-- [x] README deploy docs (static web + Android APK)
+- [x] Live read-only smoke coverage (manual / ad-hoc; dedicated SMOKE_TEST.md removed)
+- [x] README deploy docs (static web + Android APK / Play Store AAB)
 
 ## API limits (honest)
 
