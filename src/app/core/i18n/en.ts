@@ -102,6 +102,12 @@ export const en = {
   'settings.withoutTokenBody':
     'View-only mode uses start.gg’s website GraphQL (same approach as TournamentStreamHelper) — no personal API token and no shared API key. Browsers cannot call that endpoint directly (CORS), so production web builds go through the small forwarder in proxy/. Android and local npm start (/sgg-public) talk to it without that Worker. Editing still needs your personal API token (and admin rights).',
   'settings.authInvalid': 'Your start.gg token is invalid. Please sign in again.',
+  'settings.aboutTitle': 'About',
+  'settings.disclaimer':
+    'Not affiliated with, endorsed by, or sponsored by start.gg or Smash.gg. This is an independent third-party tool.',
+  'settings.privacyBody':
+    'SGG Manager does not run its own account, analytics, or advertising backend. A token or website session you save stays on this device and is sent only to start.gg. Clear them here, or uninstall the app, to delete them.',
+  'settings.privacyLink': 'Privacy policy',
 
   // Tournaments list / detail
   'tournaments.filter': 'Filter…',

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy — SGG Manager</title>
+    <meta
+      name="description"
+      content="Privacy policy for SGG Manager, an independent Android app for viewing and managing start.gg brackets."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --text: #1c1917;
+        --muted: #57534e;
+        --bg: #fafaf9;
+        --card: #ffffff;
+        --line: #e7e5e4;
+        --link: #9a3412;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --text: #fafaf9;
+          --muted: #a8a29e;
+          --bg: #1c1917;
+          --card: #292524;
+          --line: #44403c;
+          --link: #fdba74;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+        line-height: 1.55;
+        color: var(--text);
+        background: var(--bg);
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 4rem;
+      }
+      h1, h2, h3 { font-family: system-ui, sans-serif; line-height: 1.25; }
+      h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+      h2 { font-size: 1.2rem; margin-top: 2rem; }
+      h3 { font-size: 1rem; margin-top: 1.5rem; }
+      p, li { font-size: 1.02rem; }
+      .meta, .note { color: var(--muted); font-family: system-ui, sans-serif; font-size: 0.92rem; }
+      a { color: var(--link); }
+      section { border-top: 1px solid var(--line); }
+      ul { padding-left: 1.2rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="meta">SGG Manager · Effective 9 November 2026</p>
+      <h1>Privacy policy</h1>
+      <p class="note">
+        Not affiliated with, endorsed by, or sponsored by start.gg or Smash.gg. SGG Manager is an
+        independent third-party tool.
+      </p>
+      <p>
+        This policy describes the Android app SGG Manager (<code>gg.startmanager.app</code>) and the
+        website build of the same project. The developer does not operate an account system, analytics
+        service, advertising service, or crash-reporting backend, and does not collect or sell personal
+        data.
+      </p>
+
+      <section>
+        <h2>Data the developer collects</h2>
+        <p>None. There is no developer account, and the app does not send usage data to the developer.</p>
+        <p>The app does not include analytics, advertising, or crash-reporting SDKs.</p>
+      </section>
+
+      <section>
+        <h2>Data stored on your device</h2>
+        <p>
+          If you choose to use editing features or change settings, the app stores the following on the
+          device only (Android: Capacitor Preferences; website: the browser’s local storage). View-only
+          use does not require any of it.
+        </p>
+        <ul>
+          <li>An optional personal start.gg API token that you paste in Settings.</li>
+          <li>An optional start.gg website session (<code>gg_session</code>) that you paste in Settings.</li>
+          <li>App settings, such as language and, on the website build, an optional proxy URL.</li>
+        </ul>
+        <p>
+          Android backup is turned off (<code>android:allowBackup="false"</code>), so this data is not
+          copied into Android cloud backup. Uninstalling the app deletes it.
+        </p>
+      </section>
+
+      <section>
+        <h2>Where that data is sent</h2>
+        <p>
+          Requests are sent only when you use the app, over HTTPS. The personal API token and website
+          session are sent only to start.gg, and only for the features that need them (reporting sets,
+          seeding, and entrant changes). They are not sold, not used for advertising, and not shared by
+          the developer for analytics.
+        </p>
+        <ul>
+          <li>
+            <strong>Android.</strong> The app calls start.gg directly. A proxy is not required and is not
+            used.
+          </li>
+          <li>
+            <strong>Website.</strong> Browsers cannot call start.gg’s website API from another site, so
+            the website build may send those requests through a CORS proxy that forwards them to
+            start.gg. The proxy included with this project does not store or log the request. You can
+            replace that proxy URL in Settings. The proxy is not part of the Android app.
+          </li>
+        </ul>
+        <p>
+          Tournament, bracket, and player information shown in the app comes from start.gg and is handled
+          by start.gg under its own policies.
+        </p>
+      </section>
+
+      <section>
+        <h2>Sharing</h2>
+        <p>
+          The developer does not share user data with third parties. The only destination for credentials
+          and for the requests you make is start.gg (on the website, via a pass-through proxy as described
+          above).
+        </p>
+      </section>
+
+      <section>
+        <h2>Deletion</h2>
+        <p>You can delete data stored by the app at any time:</p>
+        <ul>
+          <li>In Settings, use <strong>Remove token</strong> and <strong>Remove session</strong>.</li>
+          <li>Uninstall the app. That removes the on-device token, session, and settings.</li>
+        </ul>
+        <p>
+          The developer has no copy to delete. To remove data start.gg holds about your start.gg account,
+          use start.gg’s own account controls.
+        </p>
+      </section>
+
+      <section>
+        <h2>Children</h2>
+        <p>
+          SGG Manager is not directed at children under 13. The suggested audience is 13 and older. The
+          app does not knowingly collect personal information from children.
+        </p>
+      </section>
+
+      <section>
+        <h2>Security</h2>
+        <p>
+          Traffic to start.gg uses HTTPS. The Android app requests only the
+          <code>android.permission.INTERNET</code> permission. No independent security review has been
+          performed.
+        </p>
+      </section>
+
+      <section>
+        <h2>Contact</h2>
+        <p>
+          Questions about this policy:
+          <a href="https://github.com/erebernisek/startgg-manager-v2/issues">GitHub issues for this project</a>.
+        </p>
+      </section>
+
+      <section lang="pt-BR">
+        <h2>Português</h2>
+        <p class="note">
+          Não afiliado, endossado ou patrocinado pelo start.gg ou Smash.gg. Ferramenta independente de
+          terceiros.
+        </p>
+        <p>
+          O desenvolvedor não coleta nem vende dados e não opera backend de conta, anúncios, analytics ou
+          relatórios de falha. O modo somente leitura não pede credenciais.
+        </p>
+        <p>
+          Se você colar um token de API pessoal, uma sessão do site (<code>gg_session</code>) ou mudar
+          ajustes (idioma e, no site, uma URL de proxy), isso fica só no dispositivo. No Android o backup
+          em nuvem está desligado. Para apagar, use Remover token e Remover sessão em Configurações, ou
+          desinstale o app.
+        </p>
+        <p>
+          Token e sessão são enviados apenas ao start.gg, por HTTPS, quando você usa funções de edição.
+          Não são vendidos nem usados para publicidade. O app Android fala direto com o start.gg. O site
+          pode usar um proxy CORS que só encaminha o pedido e não o armazena. O app não é dirigido a
+          crianças menores de 13 anos.
+        </p>
+        <p>
+          Contato:
+          <a href="https://github.com/erebernisek/startgg-manager-v2/issues">issues no GitHub</a>.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

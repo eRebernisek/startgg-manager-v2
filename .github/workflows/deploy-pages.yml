@@ -27,6 +27,8 @@ jobs:
       - run: npm run build:pages
       - name: Add .nojekyll
         run: touch dist/startgg-manager-v2/browser/.nojekyll
+      - name: Require privacy policy page
+        run: test -f dist/startgg-manager-v2/browser/privacy.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/startgg-manager-v2/browser

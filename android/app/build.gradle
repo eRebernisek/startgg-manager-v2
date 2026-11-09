@@ -1,5 +1,30 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+def nonempty = { value ->
+    (value != null && value.toString().length() > 0) ? value.toString() : null
+}
+
+// Environment variables override keystore.properties so CI can pass secrets without a file.
+def releaseStorePath = nonempty(System.getenv("ANDROID_KEYSTORE_PATH")) ?: nonempty(keystoreProperties.getProperty("storeFile"))
+def releaseStorePassword = nonempty(System.getenv("ANDROID_KEYSTORE_PASSWORD")) ?: nonempty(keystoreProperties.getProperty("storePassword"))
+def releaseKeyAlias = nonempty(System.getenv("ANDROID_KEY_ALIAS")) ?: nonempty(keystoreProperties.getProperty("keyAlias"))
+def releaseKeyPassword = nonempty(System.getenv("ANDROID_KEY_PASSWORD")) ?: nonempty(keystoreProperties.getProperty("keyPassword"))
+
+// storeFile in keystore.properties is relative to android/. ANDROID_KEYSTORE_PATH may be absolute.
+def releaseStoreFile = null
+if (releaseStorePath != null) {
+    def candidate = new File(releaseStorePath)
+    releaseStoreFile = candidate.isAbsolute() ? candidate : rootProject.file(releaseStorePath)
+}
+
+def hasReleaseSigning = releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null
+
 android {
     namespace = "gg.startmanager.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,7 +33,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,11 +41,37 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile releaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def wantsRelease = graph.allTasks.any { it.name == "bundleRelease" || it.name == "assembleRelease" }
+    if (!wantsRelease) {
+        return
+    }
+    if (!hasReleaseSigning) {
+        throw new GradleException("Release signing is not configured. Copy android/keystore.properties.example to android/keystore.properties, or set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD. See ANDROID_RELEASE.md.")
+    }
+    if (!releaseStoreFile.exists()) {
+        throw new GradleException("Upload keystore not found at ${releaseStoreFile}. Generate it with keytool; see ANDROID_RELEASE.md.")
     }
 }
 

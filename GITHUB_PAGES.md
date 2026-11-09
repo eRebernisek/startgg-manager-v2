@@ -80,6 +80,14 @@ Site URL pattern:
 
 `https://<username>.github.io/<repo>/`
 
+### Privacy policy
+
+`public/privacy.html` is copied into the Pages artifact by the Angular build (`assets` input `public`). After a successful **Deploy GitHub Pages** run on `main`, it is served at:
+
+`https://erebernisek.github.io/startgg-manager-v2/privacy.html`
+
+The workflow fails the build if that file is missing from `dist/startgg-manager-v2/browser`. Pages for this repo is already set to **GitHub Actions** (`build_type=workflow`). No Pages setting change is required for the policy URL; merging the file to `main` is what publishes it. A 404 on that URL while the site root returns 200 means the deployed artifact does not contain `privacy.html`.
+
 ## After it is live
 
 1. Open the Pages URL — you can paste a start.gg event URL and **view** brackets without a token.

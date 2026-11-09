@@ -60,5 +60,10 @@ android/captures/
 *.apk
 *.aab
 
+# Upload key — never commit. See ANDROID_RELEASE.md.
+*.jks
+*.keystore
+android/keystore.properties
+
 # Local screenshots / scratch
 .screenshots/
