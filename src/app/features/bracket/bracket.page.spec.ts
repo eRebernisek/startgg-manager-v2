@@ -6,9 +6,17 @@ import { of } from 'rxjs';
 import { BracketSet, EventDetail, Phase, SetState } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { StartggError } from '../../core/api/startgg-client';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { StorageService } from '../../core/storage.service';
 import { ToastService } from '../../core/toast.service';
 import { EventStore } from '../event/event.store';
 import { BracketPage } from './bracket.page';
+
+const memoryStorage = {
+  get: async () => null as string | null,
+  set: async () => undefined,
+  remove: async () => undefined,
+};
 
 const preview = (id: string): BracketSet => ({
   id,
@@ -54,6 +62,8 @@ describe('BracketPage start bracket', () => {
         { provide: EventStore, useValue: store },
         { provide: ToastService, useValue: toast },
         { provide: Dialog, useValue: dialog },
+        { provide: StorageService, useValue: memoryStorage },
+        I18nService,
       ],
     });
     const fixture = TestBed.createComponent(BracketPage);

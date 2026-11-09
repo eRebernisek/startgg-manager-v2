@@ -1,5 +1,6 @@
 import { Injectable, inject, isDevMode } from '@angular/core';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { I18nService } from '../i18n/i18n.service';
 import { WebSessionService } from '../web-session.service';
 import { DEFAULT_PUBLIC_PROXY_URL } from './public-proxy';
 import { StartggError } from './startgg-client';
@@ -39,6 +40,7 @@ export type WebTransportKind = 'native' | 'proxy' | 'dev-proxy' | 'none';
 @Injectable({ providedIn: 'root' })
 export class StartggWebClient {
   private readonly web = inject(WebSessionService);
+  private readonly i18n = inject(I18nService);
 
   transport(): WebTransportKind {
     if (Capacitor.isNativePlatform()) return 'native';
@@ -61,15 +63,12 @@ export class StartggWebClient {
   ): Promise<WebResult<T>> {
     const session = this.web.session();
     if (opts.isMutation && !session) {
-      throw new StartggError(
-        'This needs your start.gg website session. Paste it in Settings → start.gg website session.',
-        'auth',
-      );
+      throw new StartggError(this.i18n.t('web.sessionRequired'), 'auth');
     }
     const body = await this.send<T>(JSON.stringify({ query, variables }), session);
 
     if (body.success === false) {
-      throw new StartggError(body.message ?? 'start.gg rejected the request.', classify(body.message ?? ''));
+      throw new StartggError(body.message ?? this.i18n.t('web.rejected'), classify(body.message ?? ''));
     }
     if (body.errors?.length) {
       const message = body.errors.map((e) => e.message).join('; ');
@@ -78,9 +77,7 @@ export class StartggWebClient {
     // Hidden admin mutations answer `data: []` when start.gg does not recognise the session.
     if (Array.isArray(body.data) || body.data == null) {
       throw new StartggError(
-        opts.isMutation
-          ? 'start.gg did not accept the website session (logged out or expired). Paste a fresh gg_session in Settings.'
-          : 'start.gg returned no data.',
+        opts.isMutation ? this.i18n.t('web.sessionUnrecognized') : this.i18n.t('api.noData'),
         opts.isMutation ? 'auth' : 'graphql',
       );
     }
@@ -113,10 +110,7 @@ export class StartggWebClient {
         return (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) as WebResponse<T>;
       }
       if (kind === 'none') {
-        throw new StartggError(
-          'Browsers cannot call start.gg’s website API directly (CORS). Set a proxy URL in Settings, or use the Android app.',
-          'network',
-        );
+        throw new StartggError(this.i18n.t('web.corsBrowsers'), 'network');
       }
       const url = kind === 'proxy' ? this.proxyEndpoint() : DEV_WEB_PROXY;
       const res = await fetch(url, {
@@ -129,14 +123,12 @@ export class StartggWebClient {
       try {
         return JSON.parse(text) as WebResponse<T>;
       } catch {
-        throw new StartggError(`The start.gg website API proxy answered HTTP ${res.status} without JSON.`, 'network');
+        throw new StartggError(this.i18n.t('web.proxyNoJson', { status: res.status }), 'network');
       }
     } catch (e) {
       if (e instanceof StartggError) throw e;
       throw new StartggError(
-        kind === 'proxy'
-          ? 'Could not reach the start.gg proxy. Check the proxy URL in Settings.'
-          : 'Could not reach start.gg’s website API.',
+        kind === 'proxy' ? this.i18n.t('web.reachProxy') : this.i18n.t('web.reachWebsiteApi'),
         'network',
       );
     }

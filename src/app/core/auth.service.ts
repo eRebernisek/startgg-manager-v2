@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
+import { I18nService } from './i18n/i18n.service';
 import { StorageService } from './storage.service';
 
 const TOKEN_KEY = 'startgg_token';
@@ -11,6 +12,7 @@ const TOKEN_KEY = 'startgg_token';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storage = inject(StorageService);
+  private readonly i18n = inject(I18nService);
   private readonly _token = signal<string | null>(null);
   private readonly authErrorSubject = new Subject<string>();
 
@@ -36,8 +38,8 @@ export class AuthService {
     this._token.set(null);
   }
 
-  notifyAuthError(message = 'Your start.gg token is invalid. Please sign in again.'): void {
+  notifyAuthError(message?: string): void {
     void this.clear();
-    this.authErrorSubject.next(message);
+    this.authErrorSubject.next(message ?? this.i18n.t('settings.authInvalid'));
   }
 }

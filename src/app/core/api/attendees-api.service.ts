@@ -7,6 +7,7 @@ import {
   registerPlayerFields,
   registrationPlacement,
 } from '../attendees';
+import { I18nService } from '../i18n/i18n.service';
 import { Id, Image } from './models';
 import { StartggApi } from './startgg-api.service';
 import { StartggError } from './startgg-client';
@@ -47,6 +48,7 @@ export interface Registered {
 export class AttendeesApi {
   private readonly web = inject(StartggWebClient);
   private readonly api = inject(StartggApi);
+  private readonly i18n = inject(I18nService);
 
   /** The account behind the website session, or null when start.gg does not recognise it. */
   async sessionUser(): Promise<WebUser | null> {
@@ -85,14 +87,16 @@ export class AttendeesApi {
     const setup = await this.web.request<{ tournament: RegistrationSetup | null }>(W.WEB_REGISTRATION_SETUP, {
       tournamentId,
     });
-    const placement = registrationPlacement(setup.data.tournament, eventId);
+    const placement = registrationPlacement(setup.data.tournament, eventId, (key, params) =>
+      this.i18n.t(key, params),
+    );
     const { actionRecords } = await this.web.request<{ registerPlayer: { id: Id } | null }>(
       W.WEB_REGISTER_PLAYER,
       { tournamentId, fields: registerPlayerFields(attendee, eventId, placement) },
       { isMutation: true },
     );
     const participantId = actionRecords.update?.['participants']?.[0];
-    if (!participantId) throw new StartggError('start.gg did not report a new attendee.', 'graphql');
+    if (!participantId) throw new StartggError(this.i18n.t('web.attendeeNotReported'), 'graphql');
     return { participantId, placement };
   }
 
@@ -104,7 +108,9 @@ export class AttendeesApi {
       { participantId, gamerTag: gamerTag.trim(), prefix: prefix?.trim() ?? '' },
       { isMutation: true },
     );
-    if (!data.updateParticipantGamertag) throw new StartggError('start.gg did not change the tag.', 'graphql');
+    if (!data.updateParticipantGamertag) {
+      throw new StartggError(this.i18n.t('web.tagNotChanged'), 'graphql');
+    }
     return data.updateParticipantGamertag;
   }
 
@@ -117,7 +123,7 @@ export class AttendeesApi {
     );
     const deleted = actionRecords.delete?.['participants'] ?? [];
     if (!deleted.some((id) => String(id) === String(participantId))) {
-      throw new StartggError('start.gg did not report the attendee as removed.', 'graphql');
+      throw new StartggError(this.i18n.t('web.attendeeNotRemoved'), 'graphql');
     }
   }
 }

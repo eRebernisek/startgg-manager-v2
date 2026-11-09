@@ -1,10 +1,18 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { parse } from 'graphql';
+import { I18nService } from '../i18n/i18n.service';
+import { StorageService } from '../storage.service';
 import { WebSessionService } from '../web-session.service';
 import { StartggError } from './startgg-client';
 import { DEV_WEB_PROXY, SESSION_HEADER, StartggWebClient } from './startgg-web-client';
 import * as W from './web-documents';
+
+const memoryStorage = {
+  get: async () => null as string | null,
+  set: async () => undefined,
+  remove: async () => undefined,
+};
 
 describe('StartggWebClient', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
@@ -17,7 +25,11 @@ describe('StartggWebClient', () => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     TestBed.configureTestingModule({
-      providers: [{ provide: WebSessionService, useValue: { session, proxyUrl } }],
+      providers: [
+        { provide: WebSessionService, useValue: { session, proxyUrl } },
+        { provide: StorageService, useValue: memoryStorage },
+        I18nService,
+      ],
     });
   });
 

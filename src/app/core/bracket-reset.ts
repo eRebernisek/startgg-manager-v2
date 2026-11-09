@@ -1,5 +1,6 @@
 import { BracketSet, Id, Phase, SetState } from './api/models';
 import { isPreviewSet } from './bracket-layout';
+import type { TranslateFn } from './i18n/i18n.service';
 
 /** Set states that carry results or progress start.gg must clear. */
 const RESETTABLE = new Set<number>([SetState.Completed, SetState.InProgress, SetState.Called]);
@@ -98,6 +99,7 @@ export async function resetPhase(
   phase: Phase,
   sets: readonly BracketSet[],
   onProgress?: (p: ResetProgress) => void,
+  t?: TranslateFn,
 ): Promise<void> {
   const ordered = resetOrder(sets);
   for (const [i, set] of ordered.entries()) {
@@ -105,8 +107,13 @@ export async function resetPhase(
     try {
       await api.resetSet(set.id, true);
     } catch (e) {
-      const label = [set.fullRoundText, set.identifier].filter(Boolean).join(' ') || `set ${set.id}`;
-      throw new Error(`Could not reset ${label}: ${e instanceof Error ? e.message : String(e)}`);
+      const label =
+        [set.fullRoundText, set.identifier].filter(Boolean).join(' ') ||
+        (t ? t('seeding.setFallback', { id: set.id }) : `set ${set.id}`);
+      const detail = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        t ? t('seeding.couldNotReset', { label, message: detail }) : `Could not reset ${label}: ${detail}`,
+      );
     }
   }
   onProgress?.({ step: 'phase' });
@@ -114,7 +121,9 @@ export async function resetPhase(
   const started = (updated.phaseGroups?.nodes ?? []).filter((g) => g.state != null && Number(g.state) !== 1);
   if (started.length) {
     throw new Error(
-      `start.gg kept ${started.length} pool(s) started. Use "Reset bracket" in the phase's admin page on start.gg.`,
+      t
+        ? t('seeding.keptStarted', { n: started.length })
+        : `start.gg kept ${started.length} pool(s) started. Use "Reset bracket" in the phase's admin page on start.gg.`,
     );
   }
 }

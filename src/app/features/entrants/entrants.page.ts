@@ -17,6 +17,9 @@ import { StartggApi } from '../../core/api/startgg-api.service';
 import { StartggWebClient } from '../../core/api/startgg-web-client';
 import { AttendeeRow, attendeeRow, displayingText } from '../../core/attendees';
 import { startggAdminUrl } from '../../core/bracket-url';
+import type { I18nKey } from '../../core/i18n/en';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { ToastService } from '../../core/toast.service';
 import { WebSessionService } from '../../core/web-session.service';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -35,7 +38,7 @@ type Filter = 'all' | 'account' | 'noAccount' | 'unseeded';
 
 @Component({
   selector: 'app-entrants-page',
-  imports: [FormsModule, RouterLink, AvatarComponent, CdkMenu, CdkMenuItem, CdkMenuTrigger],
+  imports: [FormsModule, RouterLink, AvatarComponent, CdkMenu, CdkMenuItem, CdkMenuTrigger, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './entrants.page.html',
   styleUrl: './attendees.scss',
@@ -48,6 +51,14 @@ export class EntrantsPage implements OnInit, OnDestroy {
   private readonly dialog = inject(Dialog);
   private readonly injector = inject(Injector);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
+
+  protected readonly filterOptions: { id: Filter; labelKey: I18nKey }[] = [
+    { id: 'all', labelKey: 'entrants.filterAll' },
+    { id: 'account', labelKey: 'entrants.filterAccount' },
+    { id: 'noAccount', labelKey: 'entrants.filterNoAccount' },
+    { id: 'unseeded', labelKey: 'entrants.filterUnseeded' },
+  ];
 
   protected readonly rows = signal<AttendeeRow[]>([]);
   protected readonly total = signal(0);
@@ -69,21 +80,20 @@ export class EntrantsPage implements OnInit, OnDestroy {
         (f === 'unseeded' && r.seed == null),
     );
   });
-  protected readonly countText = computed(() =>
-    this.filter() === 'all'
-      ? displayingText(this.rows().length, this.total())
-      : `${this.visible().length} of ${this.rows().length} loaded match the filter`,
-  );
+  protected readonly countText = computed(() => {
+    this.i18n.lang();
+    const t = (key: I18nKey, params?: Record<string, string | number>) => this.i18n.t(key, params);
+    return this.filter() === 'all'
+      ? displayingText(this.rows().length, this.total(), t)
+      : t('entrants.filterCount', { visible: this.visible().length, loaded: this.rows().length });
+  });
   protected readonly transportMissing = computed(() => this.webClient.transport() === 'none');
   protected readonly attendeesUrl = computed(() => startggAdminUrl(this.store.tournamentSlug(), 'attendees'));
   /** Why add/rename/remove cannot run here, shown in the dialogs with a start.gg fallback link. */
   protected readonly blockedReason = computed(() => {
-    if (this.webClient.transport() === 'none') {
-      return 'This web build cannot reach start.gg’s attendee API (browsers are blocked by CORS). Set a proxy URL in Settings, or use the Android app.';
-    }
-    if (!this.web.hasSession()) {
-      return 'Adding, renaming and removing attendees uses start.gg’s website API, which needs your start.gg website session (gg_session), not the API token. Paste it in Settings.';
-    }
+    this.i18n.lang();
+    if (this.webClient.transport() === 'none') return this.i18n.t('entrants.blockedCors');
+    if (!this.web.hasSession()) return this.i18n.t('entrants.blockedSession');
     return null;
   });
 
@@ -165,15 +175,15 @@ export class EntrantsPage implements OnInit, OnDestroy {
     if (!result) return;
     this.toast.ok(
       result.placement.phaseName
-        ? `Added ${result.label} to ${ctx.eventName} (${result.placement.phaseName}).`
-        : `Added ${result.label} to ${ctx.eventName}.`,
+        ? this.i18n.t('entrants.addedPhase', {
+            label: result.label,
+            event: ctx.eventName,
+            phase: result.placement.phaseName,
+          })
+        : this.i18n.t('entrants.added', { label: result.label, event: ctx.eventName }),
     );
     if (!result.placement.phaseName) {
-      this.toast.show(
-        'The bracket has already started, so start.gg registered them for the event without placing them in it. Reset the bracket in Seeding to include them.',
-        'info',
-        9000,
-      );
+      this.toast.show(this.i18n.t('entrants.addedUnplaced'), 'info', 9000);
     }
     await this.afterChange();
   }
@@ -183,7 +193,9 @@ export class EntrantsPage implements OnInit, OnDestroy {
     if (!data) return;
     const result = await firstValueFrom(openEditTag(this.dialog, this.injector, data).closed);
     if (!result) return;
-    this.toast.ok(`Tag changed to ${attendeeLabel(result.gamerTag, result.prefix)}.`);
+    this.toast.ok(
+      this.i18n.t('entrants.tagChanged', { label: attendeeLabel(result.gamerTag, result.prefix) }),
+    );
     await this.afterChange();
   }
 
@@ -192,7 +204,7 @@ export class EntrantsPage implements OnInit, OnDestroy {
     if (!data) return;
     const removed = await firstValueFrom(openRemoveAttendee(this.dialog, this.injector, data).closed);
     if (!removed) return;
-    this.toast.ok(`Removed ${attendeeLabel(row.tag, row.prefix)}.`);
+    this.toast.ok(this.i18n.t('entrants.removed', { label: attendeeLabel(row.tag, row.prefix) }));
     await this.afterChange();
   }
 

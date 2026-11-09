@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { I18nService } from '../i18n/i18n.service';
 import * as D from './documents';
 import {
   BracketSet,
@@ -46,6 +47,7 @@ const MAX_PAGES = 50;
 @Injectable({ providedIn: 'root' })
 export class StartggApi {
   private readonly client = inject(StartggClient);
+  private readonly i18n = inject(I18nService);
 
   // ---------- Queries ----------
 
@@ -227,7 +229,7 @@ export class StartggApi {
       { isMutation: true },
     );
     this.client.invalidate();
-    if (!data.updatePhaseSeeding) throw new StartggError('start.gg did not update the seeding.', 'graphql');
+    if (!data.updatePhaseSeeding) throw new StartggError(this.i18n.t('api.seedingNotUpdated'), 'graphql');
     return data.updatePhaseSeeding;
   }
 
@@ -244,7 +246,7 @@ export class StartggApi {
       { isMutation: true },
     );
     this.client.invalidate();
-    if (!data.upsertPhase) throw new StartggError('start.gg did not reset the bracket.', 'graphql');
+    if (!data.upsertPhase) throw new StartggError(this.i18n.t('api.bracketNotReset'), 'graphql');
     return data.upsertPhase;
   }
 

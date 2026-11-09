@@ -1,4 +1,6 @@
 import { Id, Phase, SeedMappingInput } from './api/models';
+import type { I18nKey } from './i18n/en';
+import type { TranslateFn } from './i18n/i18n.service';
 
 interface SeedLike {
   id: Id;
@@ -35,10 +37,16 @@ export function phaseStarted(phase: Phase | null | undefined): boolean {
   return !!phase.state && phase.state !== 'CREATED';
 }
 
+export const STARTED_PHASE_HINT_KEY: I18nKey = 'seeding.startedHint';
+
+/** English fallback for specs that assert the hint without an i18n service. */
 export const STARTED_PHASE_HINT = 'Bracket already started — use Reset bracket to reseed.';
 
 /** Turns start.gg's seeding errors into an actionable message, keeping start.gg's own reason. */
-export function seedingErrorMessage(message: string): string {
-  if (/started (pools|phases)/i.test(message)) return `${STARTED_PHASE_HINT} (start.gg: ${message})`;
-  return `Seeding not saved: ${message}`;
+export function seedingErrorMessage(message: string, t?: TranslateFn): string {
+  const hint = t ? t('seeding.startedHint') : STARTED_PHASE_HINT;
+  if (/started (pools|phases)/i.test(message)) {
+    return t ? t('seeding.startedError', { hint, message }) : `${hint} (start.gg: ${message})`;
+  }
+  return t ? t('seeding.notSaved', { message }) : `Seeding not saved: ${message}`;
 }

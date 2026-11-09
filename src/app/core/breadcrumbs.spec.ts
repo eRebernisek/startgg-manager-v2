@@ -1,4 +1,7 @@
 import { breadcrumbTrail, eventCrumbKey, humanizeSlug, logicalParent, tournamentCrumbKey } from './breadcrumbs';
+import { en } from './i18n/en';
+
+const tEn = (key: keyof typeof en) => en[key];
 
 describe('logicalParent', () => {
   it('walks event → tournament → tournament list → home when a token is set', () => {
@@ -23,27 +26,27 @@ describe('breadcrumbTrail', () => {
   };
 
   it('names every route and points parent crumbs at the right url', () => {
-    expect(breadcrumbTrail('/', {}, false)).toEqual([{ label: 'Home' }]);
-    expect(breadcrumbTrail('/settings', {}, true)).toEqual([
+    expect(breadcrumbTrail('/', {}, false, tEn)).toEqual([{ label: 'Home' }]);
+    expect(breadcrumbTrail('/settings', {}, true, tEn)).toEqual([
       { label: 'Home', url: '/' },
       { label: 'Settings' },
     ]);
-    expect(breadcrumbTrail('/tournaments', {}, true)).toEqual([
+    expect(breadcrumbTrail('/tournaments', {}, true, tEn)).toEqual([
       { label: 'Home', url: '/' },
       { label: 'My tournaments' },
     ]);
-    expect(breadcrumbTrail('/tournament/cup', labels, true)).toEqual([
+    expect(breadcrumbTrail('/tournament/cup', labels, true, tEn)).toEqual([
       { label: 'Home', url: '/' },
       { label: 'My tournaments', url: '/tournaments' },
       { label: 'Battle Coliseum' },
     ]);
-    expect(breadcrumbTrail('/tournament/cup', {}, false)).toEqual([
+    expect(breadcrumbTrail('/tournament/cup', {}, false, tEn)).toEqual([
       { label: 'Home', url: '/' },
       { label: 'Cup' },
     ]);
 
     for (const section of ['bracket', 'sets', 'entrants', 'seeding'] as const) {
-      const trail = breadcrumbTrail(`/tournament/cup/event/melee-singles/${section}?phase=3`, labels, true);
+      const trail = breadcrumbTrail(`/tournament/cup/event/melee-singles/${section}?phase=3`, labels, true, tEn);
       expect(trail.map((c) => c.label)).toEqual([
         'Home',
         'My tournaments',
@@ -67,8 +70,8 @@ describe('breadcrumbTrail', () => {
 
   it('uses the slug on a direct URL until the real title arrives, and omits the list without a token', () => {
     expect(humanizeSlug('melee-singles')).toBe('Melee Singles');
-    expect(breadcrumbTrail('/tournament/battle-coliseum/event/rivals-2/seeding', {}, false).map((c) => c.label)).toEqual(
-      ['Home', 'Battle Coliseum', 'Rivals 2', 'Seeding'],
-    );
+    expect(
+      breadcrumbTrail('/tournament/battle-coliseum/event/rivals-2/seeding', {}, false, tEn).map((c) => c.label),
+    ).toEqual(['Home', 'Battle Coliseum', 'Rivals 2', 'Seeding']);
   });
 });

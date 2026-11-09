@@ -4,12 +4,14 @@ import { Tournament } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { shortSlug, startggAdminUrl } from '../../core/bracket-url';
 import { BreadcrumbService, tournamentCrumbKey } from '../../core/breadcrumbs';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { errorMessage, formatDate, profileImage } from '../../shared/display';
 
 @Component({
   selector: 'app-tournament-page',
-  imports: [RouterLink, AvatarComponent],
+  imports: [RouterLink, AvatarComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
@@ -24,16 +26,20 @@ import { errorMessage, formatDate, profileImage } from '../../shared/display';
           <app-avatar [src]="profileImage(t.images)" [name]="t.name" [size]="56" />
           <div class="spacer">
             <h1>{{ t.name }}</h1>
-            <div class="muted small">{{ formatDate(t.startAt) }}{{ t.city ? ' · ' + t.city : '' }}</div>
+            <div class="muted small">
+              {{ formatDate(t.startAt, i18n.lang()) }}{{ t.city ? ' · ' + t.city : '' }}
+            </div>
           </div>
           @if (t.admins) {
-            <span class="badge ok">Admin</span>
-            <a class="btn sm" [href]="adminUrl(t.slug)" target="_blank" rel="noopener">start.gg admin ↗</a>
+            <span class="badge ok">{{ 'tournament.admin' | t }}</span>
+            <a class="btn sm" [href]="adminUrl(t.slug)" target="_blank" rel="noopener">{{
+              'tournament.adminLink' | t
+            }}</a>
           } @else {
-            <span class="badge">Read-only</span>
+            <span class="badge">{{ 'tournament.readOnly' | t }}</span>
           }
         </div>
-        <h2>Events</h2>
+        <h2>{{ 'tournament.events' | t }}</h2>
         <div class="grid">
           @for (e of t.events ?? []; track e.id) {
             <a class="card list-item clickable" [routerLink]="['event', shortSlug(e.slug)]">
@@ -41,12 +47,13 @@ import { errorMessage, formatDate, profileImage } from '../../shared/display';
               <div class="spacer">
                 <strong>{{ e.name }}</strong>
                 <div class="muted small">
-                  {{ e.videogame?.displayName ?? e.videogame?.name }} · {{ e.numEntrants ?? 0 }} entrants
+                  {{ e.videogame?.displayName ?? e.videogame?.name }} ·
+                  {{ 'tournament.entrantsCount' | t: { n: e.numEntrants ?? 0 } }}
                 </div>
               </div>
             </a>
           } @empty {
-            <p class="muted">No events.</p>
+            <p class="muted">{{ 'tournament.noEvents' | t }}</p>
           }
         </div>
       </div>
@@ -56,6 +63,7 @@ import { errorMessage, formatDate, profileImage } from '../../shared/display';
 export class TournamentPage {
   private readonly api = inject(StartggApi);
   private readonly breadcrumbs = inject(BreadcrumbService);
+  protected readonly i18n = inject(I18nService);
   readonly tournament = input.required<string>();
 
   protected readonly data = signal<Tournament | null>(null);
@@ -79,7 +87,7 @@ export class TournamentPage {
     try {
       const t = await this.api.tournament(slug);
       if (slug !== this.tournament()) return;
-      if (!t) throw new Error(`Tournament "${slug}" not found.`);
+      if (!t) throw new Error(this.i18n.t('tournament.notFound', { slug }));
       this.data.set(t);
       this.breadcrumbs.setLabel(tournamentCrumbKey(slug), t.name);
     } catch (e) {

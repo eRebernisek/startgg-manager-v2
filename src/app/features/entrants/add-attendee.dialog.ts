@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { AttendeesApi, PlayerHit } from '../../core/api/attendees-api.service';
 import { MAX_GAMER_TAG, MAX_PREFIX, NewAttendee, parseUserSlug, validateTag } from '../../core/attendees';
 import { startggAdminUrl } from '../../core/bracket-url';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { errorMessage, profileImage } from '../../shared/display';
 import { AddAttendeeData, AddAttendeeResult, attendeeLabel, dialogConfig } from './attendee-dialogs';
@@ -17,41 +19,42 @@ export function openAddAttendee(dialog: Dialog, injector: Injector, data: AddAtt
 
 @Component({
   selector: 'app-add-attendee-dialog',
-  imports: [FormsModule, RouterLink, AvatarComponent],
+  imports: [FormsModule, RouterLink, AvatarComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './attendees.scss',
   template: `
     <form class="dialog attendee-dialog" (ngSubmit)="submit()" aria-labelledby="add-title">
       <header>
-        <strong id="add-title" class="spacer">Add attendee</strong>
-        <button type="button" class="ghost" (click)="ref.close()" aria-label="Close">✕</button>
+        <strong id="add-title" class="spacer">{{ 'entrants.addTitle' | t }}</strong>
+        <button type="button" class="ghost" (click)="ref.close()" [attr.aria-label]="'common.close' | t">✕</button>
       </header>
 
       <div class="body stack">
         <p class="muted small">
-          Registers the player for <strong>{{ data.tournamentName }}</strong> and adds them to
-          <strong>{{ data.eventName }}</strong>.
+          {{ 'entrants.addBody' | t: { tournament: data.tournamentName, event: data.eventName } }}
         </p>
 
         @if (data.blockedReason) {
           <div class="alert warn small stack">
             <span>{{ data.blockedReason }}</span>
             <span class="row">
-              <a class="btn sm" routerLink="/settings" (click)="ref.close()">Open Settings</a>
-              <a class="btn sm" [href]="attendeesUrl" target="_blank" rel="noopener">Add on start.gg ↗</a>
+              <a class="btn sm" routerLink="/settings" (click)="ref.close()">{{ 'entrants.openSettings' | t }}</a>
+              <a class="btn sm" [href]="attendeesUrl" target="_blank" rel="noopener">{{
+                'entrants.addOnStartgg' | t
+              }}</a>
             </span>
           </div>
         }
 
         @if (mode() === 'search') {
           <div class="search-box">
-            <label class="floating" for="player-search">Search for a player</label>
+            <label class="floating" for="player-search">{{ 'entrants.searchPlayers' | t }}</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input
               id="player-search"
               name="search"
               autocomplete="off"
-              placeholder="Search"
+              [placeholder]="'common.search' | t"
               [ngModel]="query()"
               (ngModelChange)="onQuery($event)"
               role="combobox"
@@ -59,11 +62,11 @@ export function openAddAttendee(dialog: Dialog, injector: Injector, data: AddAtt
               [attr.aria-expanded]="true"
             />
           </div>
-          <div class="results" id="player-results" role="listbox" aria-label="Players">
+          <div class="results" id="player-results" role="listbox" [attr.aria-label]="'entrants.players' | t">
             @if (!query().trim()) {
-              <div class="hint">Search by gamertag, name, or start.gg profile URL</div>
+              <div class="hint">{{ 'entrants.searchHint' | t }}</div>
             } @else if (searching()) {
-              <div class="hint"><span class="spinner sm"></span> Searching…</div>
+              <div class="hint"><span class="spinner sm"></span> {{ 'entrants.searching' | t }}</div>
             } @else if (searchError()) {
               <div class="hint error">{{ searchError() }}</div>
             } @else {
@@ -85,22 +88,22 @@ export function openAddAttendee(dialog: Dialog, injector: Injector, data: AddAtt
                       {{ p.gamerTag }}
                     </span>
                     <span class="muted small">
-                      {{ p.user?.name || (p.user ? p.user.slug : 'No start.gg account') }}
+                      {{ p.user?.name || (p.user ? p.user.slug : noAccountLabel) }}
                       @if (p.user?.location?.country) {
                         · {{ p.user?.location?.country }}
                       }
                     </span>
                   </span>
                   @if (isRegistered(p)) {
-                    <span class="badge ok">Registered</span>
+                    <span class="badge ok">{{ 'entrants.registered' | t }}</span>
                   }
                 </button>
               } @empty {
-                <div class="hint">No players found for “{{ query().trim() }}”.</div>
+                <div class="hint">{{ 'entrants.noPlayers' | t: { query: query().trim() } }}</div>
               }
             }
             <button type="button" class="create-new" (click)="startNew()">
-              <span aria-hidden="true">⊕</span> Or add someone without an account
+              <span aria-hidden="true">⊕</span> {{ 'entrants.orAddNew' | t }}
             </button>
           </div>
         } @else if (mode() === 'picked') {
@@ -114,25 +117,25 @@ export function openAddAttendee(dialog: Dialog, injector: Injector, data: AddAtt
                   }
                   {{ p.gamerTag }}
                 </div>
-                <div class="muted small">{{ p.user?.name || p.user?.slug || 'No start.gg account' }}</div>
+                <div class="muted small">{{ p.user?.name || p.user?.slug || noAccountLabel }}</div>
               </div>
-              <button type="button" class="sm" (click)="clear()">Change</button>
+              <button type="button" class="sm" (click)="clear()">{{ 'entrants.change' | t }}</button>
             </div>
           }
         } @else {
           <div class="new-player stack">
             <div class="row new-head">
               <app-avatar [name]="tag() || '?'" [size]="40" />
-              <strong class="spacer">New player without an account</strong>
-              <button type="button" class="sm ghost" (click)="clear()">Back to search</button>
+              <strong class="spacer">{{ 'entrants.newPlayer' | t }}</strong>
+              <button type="button" class="sm ghost" (click)="clear()">{{ 'entrants.backSearch' | t }}</button>
             </div>
             <div class="tag-fields">
               <label class="field prefix-field">
-                Prefix
+                {{ 'entrants.prefix' | t }}
                 <input name="prefix" [maxlength]="maxPrefix" [ngModel]="prefix()" (ngModelChange)="prefix.set($event)" />
               </label>
               <label class="field">
-                Gamer tag *
+                {{ 'entrants.gamerTag' | t }}
                 <input
                   name="gamerTag"
                   required
@@ -143,9 +146,9 @@ export function openAddAttendee(dialog: Dialog, injector: Injector, data: AddAtt
               </label>
             </div>
             <label class="field">
-              Name (optional)
+              {{ 'entrants.nameOptional' | t }}
               <input name="realName" autocomplete="off" [ngModel]="name()" (ngModelChange)="name.set($event)" />
-              <span class="small">start.gg has no name field for players without an account, so it is saved as an admin note.</span>
+              <span class="small">{{ 'entrants.nameHint' | t }}</span>
             </label>
             @if (tagError()) {
               <div class="small error-text">{{ tagError() }}</div>
@@ -161,12 +164,14 @@ export function openAddAttendee(dialog: Dialog, injector: Injector, data: AddAtt
       <footer>
         <button type="submit" class="primary" [disabled]="!canSubmit()">
           @if (busy()) {
-            <span class="spinner sm"></span> Adding…
+            <span class="spinner sm"></span> {{ 'entrants.adding' | t }}
           } @else {
-            Add Attendee
+            {{ 'entrants.add' | t }}
           }
         </button>
-        <button type="button" class="cancel" [disabled]="busy()" (click)="ref.close()">Cancel</button>
+        <button type="button" class="cancel" [disabled]="busy()" (click)="ref.close()">
+          {{ 'common.cancel' | t }}
+        </button>
       </footer>
     </form>
   `,
@@ -175,10 +180,14 @@ export class AddAttendeeDialog implements OnDestroy {
   protected readonly ref = inject<DialogRef<AddAttendeeResult>>(DialogRef);
   protected readonly data = inject<AddAttendeeData>(DIALOG_DATA);
   private readonly attendees = inject(AttendeesApi);
+  private readonly i18n = inject(I18nService);
 
   protected readonly maxTag = MAX_GAMER_TAG;
   protected readonly maxPrefix = MAX_PREFIX;
   protected readonly attendeesUrl = startggAdminUrl(this.data.tournamentSlug, 'attendees');
+  protected get noAccountLabel(): string {
+    return this.i18n.t('entrants.noAccount');
+  }
 
   protected readonly mode = signal<'search' | 'picked' | 'new'>('search');
   protected readonly query = signal('');
@@ -192,11 +201,18 @@ export class AddAttendeeDialog implements OnDestroy {
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  protected readonly tagError = computed(() => (this.tag() ? validateTag(this.tag(), this.prefix()) : null));
+  private readonly t = (key: Parameters<I18nService['t']>[0], params?: Record<string, string | number>) =>
+    this.i18n.t(key, params);
+
+  protected readonly tagError = computed(() => {
+    this.i18n.lang();
+    return this.tag() ? validateTag(this.tag(), this.prefix(), this.t) : null;
+  });
   protected readonly canSubmit = computed(() => {
+    this.i18n.lang();
     if (this.busy() || this.data.blockedReason) return false;
     if (this.mode() === 'picked') return !!this.picked() && !this.isRegistered(this.picked()!);
-    if (this.mode() === 'new') return !validateTag(this.tag(), this.prefix());
+    if (this.mode() === 'new') return !validateTag(this.tag(), this.prefix(), this.t);
     return false;
   });
 
@@ -232,7 +248,7 @@ export class AddAttendeeDialog implements OnDestroy {
       this.searchError.set(
         parseUserSlug(value)
           ? errorMessage(e)
-          : `${errorMessage(e)} You can still paste a start.gg profile URL (start.gg/user/…).`,
+          : this.i18n.t('entrants.searchUrlHint', { message: errorMessage(e) }),
       );
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);
@@ -274,7 +290,9 @@ export class AddAttendeeDialog implements OnDestroy {
         ? { kind: 'existing', playerId: p.id }
         : { kind: 'new', gamerTag: this.tag(), prefix: this.prefix(), name: this.name() };
     const label =
-      attendee.kind === 'existing' ? attendeeLabel(p!.gamerTag, p!.prefix) : attendeeLabel(this.tag().trim(), this.prefix().trim());
+      attendee.kind === 'existing'
+        ? attendeeLabel(p!.gamerTag, p!.prefix)
+        : attendeeLabel(this.tag().trim(), this.prefix().trim());
     this.busy.set(true);
     this.error.set(null);
     try {
@@ -285,7 +303,7 @@ export class AddAttendeeDialog implements OnDestroy {
       );
       this.ref.close({ participantId, label, placement });
     } catch (e) {
-      this.error.set(`start.gg: ${errorMessage(e)}`);
+      this.error.set(this.i18n.t('entrants.apiError', { message: errorMessage(e) }));
     } finally {
       this.busy.set(false);
     }

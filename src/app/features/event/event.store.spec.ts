@@ -2,8 +2,16 @@ import { TestBed } from '@angular/core/testing';
 import { BracketSet, SetState } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { AuthService } from '../../core/auth.service';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { StorageService } from '../../core/storage.service';
 import { ToastService } from '../../core/toast.service';
 import { EventStore } from './event.store';
+
+const memoryStorage = {
+  get: async () => null as string | null,
+  set: async () => undefined,
+  remove: async () => undefined,
+};
 
 const preview = (id: string): BracketSet => ({ id, state: SetState.Created, slots: [] });
 
@@ -35,6 +43,8 @@ describe('EventStore bracket sync', () => {
         { provide: StartggApi, useValue: api },
         { provide: AuthService, useValue: { hasToken } },
         { provide: ToastService, useValue: toast },
+        { provide: StorageService, useValue: memoryStorage },
+        I18nService,
       ],
     });
     store = TestBed.inject(EventStore);

@@ -1,13 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { BracketSet, Entrant } from '../../core/api/models';
 import { isDQSlot, sameId } from '../../core/bracket-layout';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
 import { setStateClass } from '../../shared/display';
 
 /** Two-row set card used by the bracket and the set list. */
 @Component({
   selector: 'app-set-box',
-  imports: [EntrantChipComponent],
+  imports: [EntrantChipComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (set().identifier) {
@@ -17,10 +19,10 @@ import { setStateClass } from '../../shared/display';
       <div class="slot" [class.win]="row.win" [class.lose]="row.lose">
         <app-entrant-chip [entrant]="row.entrant" [placeholder]="row.placeholder" [size]="20" />
         @if (row.dq) {
-          <span class="result dq" title="Disqualified">DQ</span>
+          <span class="result dq" [attr.title]="'common.disqualified' | t">DQ</span>
         }
         @if (row.win) {
-          <span class="result w" title="Winner">W</span>
+          <span class="result w" [attr.title]="'common.winner' | t">W</span>
         } @else if (row.lose && !row.dq) {
           <span class="result l">L</span>
         }
@@ -95,12 +97,14 @@ import { setStateClass } from '../../shared/display';
   host: { '[class]': 'stateClass()' },
 })
 export class SetBoxComponent {
+  private readonly i18n = inject(I18nService);
   readonly set = input.required<BracketSet>();
   /** Richer entrant data (avatars) keyed by entrant id, e.g. from phase group seeds. */
   readonly entrants = input<Map<string, Entrant> | null>(null);
 
   protected readonly stateClass = computed(() => setStateClass(this.set()));
   protected readonly rows = computed(() => {
+    this.i18n.lang();
     const s = this.set();
     const done = s.winnerId != null;
     return [0, 1].map((i) => {
@@ -110,7 +114,7 @@ export class SetBoxComponent {
       const win = done && sameId(s.winnerId, base?.id);
       return {
         entrant,
-        placeholder: slot?.prereqType === 'bye' ? 'bye' : 'TBD',
+        placeholder: slot?.prereqType === 'bye' ? this.i18n.t('common.bye') : this.i18n.t('common.tbd'),
         win,
         lose: done && !win,
         dq: isDQSlot(slot),

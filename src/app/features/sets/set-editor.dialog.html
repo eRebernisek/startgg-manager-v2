@@ -2,7 +2,7 @@
   <header class="se-header">
     <div class="se-title">
       <div class="se-title-row">
-        <strong class="se-round">{{ set()?.fullRoundText ?? 'Set' }}</strong>
+        <strong class="se-round">{{ roundLabel() }}</strong>
         @if (set()?.identifier) {
           <span class="se-ident">{{ set()?.identifier }}</span>
         }
@@ -11,15 +11,15 @@
         <div class="se-meta">
           <span class="se-state" [class.done]="completed()">{{ stateLabel(s.state) }}</span>
           @if (s.station?.number) {
-            <span class="muted">Station {{ s.station?.number }}</span>
+            <span class="muted">{{ 'setEditor.station' | t: { n: s.station?.number } }}</span>
           }
           @if (s.stream?.streamName) {
-            <span class="muted">Stream {{ s.stream?.streamName }}</span>
+            <span class="muted">{{ 'setEditor.stream' | t: { name: s.stream?.streamName } }}</span>
           }
         </div>
       }
     </div>
-    <button class="ghost se-close" (click)="ref.close()" aria-label="Close">✕</button>
+    <button class="ghost se-close" (click)="ref.close()" [attr.aria-label]="'common.close' | t">✕</button>
   </header>
 
   <div class="body se-body">
@@ -35,11 +35,11 @@
 
     @if (set()) {
       <section class="se-section">
-        <div class="se-section-title">Set winner</div>
-        <div class="versus" role="radiogroup" aria-label="Winner">
+        <div class="se-section-title">{{ 'setEditor.setWinner' | t }}</div>
+        <div class="versus" role="radiogroup" [attr.aria-label]="'common.winner' | t">
           @for (side of sides; track side) {
             @if (side === 1) {
-              <div class="set-score" aria-label="Set score">{{ gameScoreLabel() }}</div>
+              <div class="set-score" [attr.aria-label]="'setEditor.setScore' | t">{{ gameScoreLabel() }}</div>
             }
             <div class="side-wrap" [class.right]="side === 1">
               <button
@@ -61,7 +61,7 @@
               </button>
               @if (entrants()[side]?.participants?.[0]?.player?.id) {
                 <button type="button" class="ghost sm player-info" (click)="openPlayer(entrants()[side])">
-                  Player info
+                  {{ 'setEditor.playerInfo' | t }}
                 </button>
               }
             </div>
@@ -70,28 +70,28 @@
       </section>
 
       <section class="se-section">
-        <div class="se-section-title">Games</div>
+        <div class="se-section-title">{{ 'setEditor.games' | t }}</div>
 
         <div class="games" #gamesList>
           @for (game of games(); track game.orderNum; let i = $index) {
             <div class="game-row">
               <div class="game-label">
-                <span class="game-num">Game {{ game.orderNum }}</span>
+                <span class="game-num">{{ 'setEditor.game' | t: { n: game.orderNum } }}</span>
                 @if (canMutate() && games().length > 1) {
                   <button
                     type="button"
                     class="ghost sm game-remove"
                     (click)="removeGame(i)"
                     [disabled]="busy()"
-                    [attr.aria-label]="'Remove game ' + game.orderNum"
-                    title="Remove game"
+                    [attr.aria-label]="('setEditor.removeGameN' | t: { n: game.orderNum })"
+                    [attr.title]="'setEditor.removeGame' | t"
                   >
                     ✕
                   </button>
                 }
               </div>
 
-              <div class="game-entrants" aria-label="Game {{ game.orderNum }} entrants">
+              <div class="game-entrants" [attr.aria-label]="'setEditor.gameEntrants' | t: { n: game.orderNum }">
                 @for (side of sides; track side) {
                   @if (side === 1) {
                     <span class="game-vs" aria-hidden="true">vs</span>
@@ -107,7 +107,7 @@
                         [class.winner]="sameWinner(game.winnerId, side)"
                         [disabled]="!canMutate() || busy()"
                         (click)="setGameWinner(i, side)"
-                        title="Mark game winner"
+                        [attr.title]="'setEditor.markWinner' | t"
                       >
                         W
                       </button>
@@ -116,7 +116,7 @@
                         class="char-btn"
                         [class.selected]="!!characterFor(game, side)"
                         [disabled]="!canMutate() || busy() || !characters().length"
-                        [attr.title]="characterFor(game, side)?.name ?? 'Select character'"
+                        [attr.title]="characterFor(game, side)?.name ?? ('setEditor.selectChar' | t)"
                         (click)="openCharacterPicker(i, side)"
                       >
                         @if (iconUrl(characterFor(game, side)); as src) {
@@ -136,26 +136,25 @@
         <div class="games-actions" #gamesActions>
           @if (canMutate() && games().length > 1) {
             <button type="button" class="danger sm soft-danger" (click)="removeLastGame()" [disabled]="busy()">
-              Remove game
+              {{ 'setEditor.removeGame' | t }}
             </button>
           }
           <button type="button" class="sm add-game" (click)="addGame()" [disabled]="!canMutate() || busy()">
-            + Add game
+            {{ 'setEditor.addGame' | t }}
           </button>
         </div>
 
         @if (canMutate() && !characters().length) {
-          <div class="muted small se-note">No character roster for this videogame — you can still report winners.</div>
+          <div class="muted small se-note">{{ 'setEditor.noChars' | t }}</div>
         }
       </section>
 
       @if (preview()) {
         <div class="alert info small">
-          This bracket has not been started on start.gg yet, so its sets cannot be reported. Start the bracket on
-          start.gg first.
+          {{ 'setEditor.preview' | t }}
         </div>
       } @else if (!store.canEdit()) {
-        <div class="alert small">Read-only: {{ store.readOnlyReason() }}</div>
+        <div class="alert small">{{ 'setEditor.readOnly' | t: { reason: store.readOnlyReason() } }}</div>
       } @else {
         <label class="row small dq-toggle">
           <input
@@ -164,7 +163,7 @@
             [disabled]="!canMutate() || busy()"
             (change)="dq.set($any($event.target).checked)"
           />
-          Loser was disqualified (DQ)
+          {{ 'setEditor.dq' | t }}
         </label>
       }
     }
@@ -174,16 +173,16 @@
     <footer class="se-footer">
       <div class="footer-secondary">
         @if (!completed()) {
-          <button class="sm" (click)="markCalled()" [disabled]="busy()">Call</button>
-          <button class="sm" (click)="markInProgress()" [disabled]="busy()">Start</button>
+          <button class="sm" (click)="markCalled()" [disabled]="busy()">{{ 'setEditor.call' | t }}</button>
+          <button class="sm" (click)="markInProgress()" [disabled]="busy()">{{ 'setEditor.start' | t }}</button>
         }
-        <button class="danger sm soft-danger" (click)="reset()" [disabled]="busy()">Reset</button>
+        <button class="danger sm soft-danger" (click)="reset()" [disabled]="busy()">{{ 'setEditor.reset' | t }}</button>
       </div>
       <span class="footer-divider" aria-hidden="true"></span>
       <div class="footer-primary">
-        <button class="save-btn" (click)="saveScore()" [disabled]="busy() || !dirty()">Save</button>
+        <button class="save-btn" (click)="saveScore()" [disabled]="busy() || !dirty()">{{ 'common.save' | t }}</button>
         <button class="primary submit-btn" (click)="submit()" [disabled]="busy() || (!dirty() && completed())">
-          {{ completed() ? 'Update result' : 'Submit' }}
+          {{ (completed() ? 'setEditor.update' : 'setEditor.submit') | t }}
         </button>
       </div>
     </footer>
@@ -192,10 +191,10 @@
 
 @if (charPicker()) {
   <div class="char-backdrop" (click)="closeCharacterPicker()"></div>
-  <div class="char-modal" role="dialog" aria-label="Select character" (click)="$event.stopPropagation()">
+  <div class="char-modal" role="dialog" [attr.aria-label]="'setEditor.selectChar' | t" (click)="$event.stopPropagation()">
     <header>
-      <strong>Select character</strong>
-      <button type="button" class="ghost" (click)="closeCharacterPicker()" aria-label="Close">✕</button>
+      <strong>{{ 'setEditor.selectChar' | t }}</strong>
+      <button type="button" class="ghost" (click)="closeCharacterPicker()" [attr.aria-label]="'common.close' | t">✕</button>
     </header>
     <div class="char-grid">
       @for (c of characters(); track c.id) {

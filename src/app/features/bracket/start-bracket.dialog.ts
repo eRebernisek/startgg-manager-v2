@@ -1,5 +1,6 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { TPipe } from '../../core/i18n/t.pipe';
 
 export interface StartBracketData {
   poolName: string;
@@ -17,28 +18,24 @@ export function confirmBracketStart(dialog: Dialog, data: StartBracketData) {
 
 @Component({
   selector: 'app-start-bracket-dialog',
+  imports: [TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog" role="alertdialog" aria-labelledby="start-title">
       <header>
-        <strong id="start-title" class="spacer">Start bracket?</strong>
-        <button class="ghost" (click)="ref.close(false)" aria-label="Close">✕</button>
+        <strong id="start-title" class="spacer">{{ 'bracket.startDialogTitle' | t }}</strong>
+        <button class="ghost" (click)="ref.close(false)" [attr.aria-label]="'common.close' | t">✕</button>
       </header>
       <div class="body stack">
         <p>
-          This starts <strong>{{ data.poolName }}</strong> on start.gg and creates its
-          {{ data.setCount }} sets, so you can report results here.
+          {{ 'bracket.startDialogBody' | t: { pool: data.poolName, count: data.setCount } }}
         </p>
-        <p class="muted small">
-          start.gg has no start button in its API: the app calls one opening set to start the bracket and then
-          clears that call, so no set is left marked as called. Seeding is locked once the bracket has started
-          (use Reset bracket on the Seeding tab to change it).
-        </p>
+        <p class="muted small">{{ 'bracket.startDialogHint' | t }}</p>
       </div>
       <footer>
         <span class="spacer"></span>
-        <button type="button" class="ghost" (click)="ref.close(false)">Cancel</button>
-        <button type="button" class="primary" (click)="ref.close(true)">Start</button>
+        <button type="button" class="ghost" (click)="ref.close(false)">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="primary" (click)="ref.close(true)">{{ 'bracket.startConfirm' | t }}</button>
       </footer>
     </div>
   `,

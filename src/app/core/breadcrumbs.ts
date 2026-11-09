@@ -2,6 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './auth.service';
+import type { I18nKey } from './i18n/en';
+import { I18nService, type TranslateFn } from './i18n/i18n.service';
 
 export interface Crumb {
   label: string;
@@ -9,11 +11,11 @@ export interface Crumb {
   url?: string;
 }
 
-const SECTION_LABELS: Record<string, string> = {
-  bracket: 'Bracket',
-  sets: 'Sets',
-  entrants: 'Entrants',
-  seeding: 'Seeding',
+const SECTION_KEYS: Record<string, I18nKey> = {
+  bracket: 'nav.section.bracket',
+  sets: 'nav.section.sets',
+  entrants: 'nav.section.entrants',
+  seeding: 'nav.section.seeding',
 };
 
 export function tournamentCrumbKey(slug: string): string {
@@ -69,18 +71,19 @@ export function breadcrumbTrail(
   url: string,
   labels: Readonly<Record<string, string>>,
   hasToken: boolean,
+  t: TranslateFn = (key) => key,
 ): Crumb[] {
   const parts = splitAppUrl(url).path.split('/').filter(Boolean);
-  const home: Crumb = { label: 'Home', url: '/' };
-  if (parts.length === 0) return [{ label: 'Home' }];
-  if (parts[0] === 'settings') return [home, { label: 'Settings' }];
-  if (parts[0] === 'tournaments') return [home, { label: 'My tournaments' }];
+  const home: Crumb = { label: t('nav.home'), url: '/' };
+  if (parts.length === 0) return [{ label: t('nav.home') }];
+  if (parts[0] === 'settings') return [home, { label: t('nav.settings') }];
+  if (parts[0] === 'tournaments') return [home, { label: t('nav.tournaments') }];
 
   if (parts[0] === 'tournament' && parts[1]) {
     const tournamentSlug = parts[1];
     const tournamentLabel = labels[tournamentCrumbKey(tournamentSlug)] ?? humanizeSlug(tournamentSlug);
     const crumbs: Crumb[] = [home];
-    if (hasToken) crumbs.push({ label: 'My tournaments', url: '/tournaments' });
+    if (hasToken) crumbs.push({ label: t('nav.tournaments'), url: '/tournaments' });
 
     const eventSlug = parts[2] === 'event' ? parts[3] : undefined;
     if (!eventSlug) {
@@ -95,17 +98,19 @@ export function breadcrumbTrail(
       label: eventLabel,
       url: `/tournament/${tournamentSlug}/event/${eventSlug}/bracket`,
     });
-    crumbs.push({ label: SECTION_LABELS[section] ?? humanizeSlug(section) });
+    const sectionKey = SECTION_KEYS[section];
+    crumbs.push({ label: sectionKey ? t(sectionKey) : humanizeSlug(section) });
     return crumbs;
   }
 
-  return [{ label: 'Home' }];
+  return [{ label: t('nav.home') }];
 }
 
 @Injectable({ providedIn: 'root' })
 export class BreadcrumbService {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly i18n = inject(I18nService);
   private readonly labels = signal<Record<string, string>>({});
   private readonly url = signal(splitAppUrl(this.router.url).full);
 
@@ -130,5 +135,10 @@ export class BreadcrumbService {
     this.labels.update((map) => (map[key] === trimmed ? map : { ...map, [key]: trimmed }));
   }
 
-  readonly trail = computed(() => breadcrumbTrail(this.url(), this.labels(), this.auth.hasToken()));
+  readonly trail = computed(() => {
+    this.i18n.lang();
+    return breadcrumbTrail(this.url(), this.labels(), this.auth.hasToken(), (key, params) =>
+      this.i18n.t(key, params),
+    );
+  });
 }

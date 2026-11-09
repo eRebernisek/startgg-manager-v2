@@ -1,6 +1,7 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { TPipe } from '../../core/i18n/t.pipe';
 
 export type ResetSetChoice = 'this' | 'dependents';
 
@@ -22,25 +23,25 @@ export async function askResetSet(dialog: Dialog): Promise<ResetSetChoice | null
 
 @Component({
   selector: 'app-reset-set-dialog',
+  imports: [TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog" role="alertdialog" aria-labelledby="reset-set-title">
       <header>
-        <strong id="reset-set-title" class="spacer">Reset set?</strong>
-        <button type="button" class="ghost" (click)="ref.close()" aria-label="Close">✕</button>
+        <strong id="reset-set-title" class="spacer">{{ 'setEditor.resetTitle' | t }}</strong>
+        <button type="button" class="ghost" (click)="ref.close()" [attr.aria-label]="'common.close' | t">✕</button>
       </header>
       <div class="body stack">
-        <p>This clears the reported result for this set on start.gg.</p>
-        <p class="muted small">
-          If later sets already advanced from this result, choose <strong>Reset with dependents</strong> so those
-          sets are cleared too. That cannot be undone.
-        </p>
+        <p>{{ 'setEditor.resetBody' | t }}</p>
+        <p class="muted small">{{ 'setEditor.resetHint' | t }}</p>
       </div>
       <footer class="reset-set-footer">
-        <button type="button" class="ghost" (click)="ref.close()">Cancel</button>
+        <button type="button" class="ghost" (click)="ref.close()">{{ 'common.cancel' | t }}</button>
         <span class="spacer"></span>
-        <button type="button" class="sm" (click)="ref.close('this')">Reset this set</button>
-        <button type="button" class="danger sm" (click)="ref.close('dependents')">Reset with dependents</button>
+        <button type="button" class="sm" (click)="ref.close('this')">{{ 'setEditor.resetThis' | t }}</button>
+        <button type="button" class="danger sm" (click)="ref.close('dependents')">
+          {{ 'setEditor.resetDeps' | t }}
+        </button>
       </footer>
     </div>
   `,

@@ -1,14 +1,14 @@
 <div class="stack" style="max-width: 640px">
-  <h1>Settings</h1>
+  <h1>{{ 'settings.title' | t }}</h1>
 
   <section class="card stack">
-    <h2>start.gg API token</h2>
+    <h2>{{ 'settings.tokenTitle' | t }}</h2>
     <p class="muted small">
-      Create a personal token at
-      <a href="https://start.gg/admin/profile/developer" target="_blank" rel="noopener">
-        start.gg → Developer Settings</a>. Required to <strong>edit</strong> (report sets, seeding, …). Viewing
-      brackets works without it. Stored only on this device. Tournaments where your account is an admin can be edited;
-      everything else stays read-only.
+      {{ 'settings.tokenBodyBefore' | t }}
+      <a href="https://start.gg/admin/profile/developer" target="_blank" rel="noopener">{{
+        'settings.tokenLink' | t
+      }}</a
+      >{{ 'settings.tokenBodyAfter' | t }}
     </p>
     <form class="row" (ngSubmit)="save()">
       <input
@@ -16,14 +16,14 @@
         name="token"
         autocomplete="off"
         [type]="showToken() ? 'text' : 'password'"
-        placeholder="Paste your token"
+        [placeholder]="'settings.tokenPlaceholder' | t"
         [ngModel]="tokenInput()"
         (ngModelChange)="tokenInput.set($event)"
       />
       <button type="button" class="ghost" (click)="showToken.set(!showToken())">
-        {{ showToken() ? 'Hide' : 'Show' }}
+        {{ (showToken() ? 'common.hide' : 'common.show') | t }}
       </button>
-      <button type="submit" class="primary" [disabled]="busy()">Save &amp; verify</button>
+      <button type="submit" class="primary" [disabled]="busy()">{{ 'settings.saveVerify' | t }}</button>
     </form>
 
     @if (busy()) {
@@ -37,49 +37,40 @@
         <app-avatar [src]="profileImage(u.images)" [name]="u.player?.gamerTag" [size]="40" />
         <div>
           <strong>{{ u.player?.gamerTag ?? u.name }}</strong>
-          <div class="muted small">Token valid · {{ u.slug }}</div>
+          <div class="muted small">{{ 'settings.tokenValid' | t: { slug: u.slug ?? '' } }}</div>
         </div>
         <span class="spacer"></span>
-        <a class="btn" routerLink="/tournaments">My tournaments</a>
+        <a class="btn" routerLink="/tournaments">{{ 'nav.tournaments' | t }}</a>
       </div>
     }
     @if (auth.hasToken()) {
-      <div><button class="danger sm" (click)="clear()">Remove token</button></div>
+      <div><button class="danger sm" (click)="clear()">{{ 'settings.removeToken' | t }}</button></div>
     }
   </section>
 
   <section class="card stack">
-    <h2>start.gg website session <span class="badge warn">Unofficial</span></h2>
-    <p class="muted small">
-      Adding, renaming and removing attendees is not in start.gg’s public API. The app does it the way start.gg’s own
-      Attendees page does, through the website API, which accepts your logged-in <strong>website session</strong>
-      (the <code>gg_session</code> cookie) instead of the API token. To get it: log in on start.gg in a desktop browser,
-      open DevTools → Application (Storage) → Cookies → <code>https://www.start.gg</code>, and copy the value of
-      <code>gg_session</code>.
-    </p>
-    <p class="muted small">
-      The session is as powerful as your password-protected login: anyone with it can act as you on start.gg. It is
-      stored only on this device and sent only to start.gg (or to your own proxy below). Logging out of start.gg ends it.
-    </p>
+    <h2>{{ 'settings.sessionTitle' | t }} <span class="badge warn">{{ 'settings.unofficial' | t }}</span></h2>
+    <p class="muted small">{{ 'settings.sessionBody1' | t }}</p>
+    <p class="muted small">{{ 'settings.sessionBody2' | t }}</p>
     <form class="row" (ngSubmit)="saveSession()">
       <input
         class="spacer"
         name="session"
         autocomplete="off"
         [type]="showSession() ? 'text' : 'password'"
-        placeholder="gg_session value"
-        aria-label="start.gg website session (gg_session cookie)"
+        [placeholder]="'settings.sessionPlaceholder' | t"
+        [attr.aria-label]="'settings.sessionAria' | t"
         [ngModel]="sessionInput()"
         (ngModelChange)="sessionInput.set($event)"
       />
       <button type="button" class="ghost" (click)="showSession.set(!showSession())">
-        {{ showSession() ? 'Hide' : 'Show' }}
+        {{ (showSession() ? 'common.hide' : 'common.show') | t }}
       </button>
-      <button type="submit" class="primary" [disabled]="sessionBusy()">Save &amp; verify</button>
+      <button type="submit" class="primary" [disabled]="sessionBusy()">{{ 'settings.saveVerify' | t }}</button>
     </form>
     @if (transport() === 'none' || transport() === 'proxy') {
       <label class="field">
-        Proxy URL (web build only)
+        {{ 'settings.proxyLabel' | t }}
         <input
           name="proxy"
           placeholder="https://startgg-proxy.example.workers.dev"
@@ -87,14 +78,11 @@
           (ngModelChange)="proxyInput.set($event)"
           (blur)="saveProxy()"
         />
-        <span class="small">
-          Optional override. By default the app uses a free CORS proxy (see <code>proxy/</code>) so GitHub Pages can
-          view brackets without a token. Paste your own Worker URL here if you redeploy it. Android does not need it.
-        </span>
+        <span class="small">{{ 'settings.proxyHint' | t }}</span>
       </label>
     } @else {
       <p class="muted small">
-        Transport: {{ transport() === 'native' ? 'native HTTP (Android)' : 'ng serve dev proxy (/sgg-web)' }}.
+        {{ (transport() === 'native' ? 'settings.transportNative' : 'settings.transportDev') | t }}
       </p>
     }
     @if (sessionBusy()) {
@@ -104,20 +92,15 @@
       <div class="alert error">{{ sessionError() }}</div>
     }
     @if (sessionUser(); as u) {
-      <div class="small">Session valid · {{ u.player?.gamerTag ?? u.slug }}</div>
+      <div class="small">{{ 'settings.sessionValid' | t: { name: u.player?.gamerTag ?? u.slug ?? '' } }}</div>
     }
     @if (web.hasSession()) {
-      <div><button class="danger sm" (click)="clearSession()">Remove session</button></div>
+      <div><button class="danger sm" (click)="clearSession()">{{ 'settings.removeSession' | t }}</button></div>
     }
   </section>
 
   <section class="card stack small">
-    <h2>Without a token</h2>
-    <p class="muted">
-      View-only mode uses start.gg’s website GraphQL (same approach as TournamentStreamHelper) — no personal API token
-      and no shared API key. Browsers cannot call that endpoint directly (CORS), so production web builds go through
-      the small forwarder in <code>proxy/</code>. Android and local <code>npm start</code> (<code>/sgg-public</code>)
-      talk to it without that Worker. Editing still needs your personal API token (and admin rights).
-    </p>
+    <h2>{{ 'settings.withoutTokenTitle' | t }}</h2>
+    <p class="muted">{{ 'settings.withoutTokenBody' | t }}</p>
   </section>
 </div>

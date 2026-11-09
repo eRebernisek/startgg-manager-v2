@@ -2,7 +2,7 @@
   @case ('elimination') {
     @for (r of sides(); track r.side.key) {
       @if (sides().length > 1) {
-        <h3 class="side-title">{{ r.side.key === 'winners' ? 'Winners bracket' : 'Losers bracket' }}</h3>
+        <h3 class="side-title">{{ (r.side.key === 'winners' ? 'bracket.winners' : 'bracket.losers') | t }}</h3>
       }
       <div class="scroller">
         <div class="canvas" [style.width.px]="r.width" [style.height.px]="r.height">
@@ -12,7 +12,7 @@
             }
           </svg>
           @for (title of r.side.columns; track $index) {
-            <div class="col-title" [style.left.px]="$index * COL" [style.width.px]="W">{{ title }}</div>
+            <div class="col-title" [style.left.px]="$index * COL" [style.width.px]="W">{{ roundTitle(title) }}</div>
           }
           @for (b of r.boxes; track b.set.id) {
             <app-set-box
@@ -38,7 +38,7 @@
             @for (row of table(); track row.entrant.id) {
               <th class="rr-col">{{ row.entrant.name }}</th>
             }
-            <th>W-L</th>
+            <th>{{ 'bracket.wl' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -80,7 +80,7 @@
     <div class="round-cols">
       @for (round of rounds(); track round.round) {
         <div class="round-col">
-          <div class="col-title static">{{ round.title }}</div>
+          <div class="col-title static">{{ roundTitle(round.title) }}</div>
           @for (s of round.sets; track s.id) {
             <app-set-box [set]="s" [entrants]="entrants()" [style.height.px]="H" (click)="selectSet.emit(s.id)" />
           }

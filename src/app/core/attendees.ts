@@ -1,4 +1,5 @@
 import { Entrant, Id } from './api/models';
+import { translateEn, type TranslateFn } from './i18n/i18n.service';
 
 /** start.gg's own limits from the Add Attendee form. */
 export const MAX_GAMER_TAG = 25;
@@ -51,8 +52,15 @@ export function attendeeRow(e: Entrant): AttendeeRow {
 }
 
 /** "Displaying 1 - 4 of 4 attendees", like start.gg. */
-export function displayingText(shown: number, total: number): string {
-  if (!total || !shown) return 'No attendees';
+export function displayingText(shown: number, total: number, t?: TranslateFn): string {
+  if (!total || !shown) return t ? t('entrants.none') : 'No attendees';
+  if (t) {
+    return t('entrants.displaying', {
+      shown,
+      total,
+      word: t(total === 1 ? 'entrants.attendee' : 'entrants.attendees'),
+    });
+  }
   return `Displaying 1 - ${shown} of ${total} ${total === 1 ? 'attendee' : 'attendees'}`;
 }
 
@@ -87,22 +95,24 @@ export interface Placement {
  * without a pool ("Must select phase group for started phase"), and placing someone in a running pool would change
  * its bracket, so for a started phase the attendee is registered for the event without a phase (`-1`).
  */
-export function registrationPlacement(setup: RegistrationSetup | null | undefined, eventId: Id): Placement {
+export function registrationPlacement(
+  setup: RegistrationSetup | null | undefined,
+  eventId: Id,
+  t: TranslateFn = translateEn,
+): Placement {
   const passOption = setup?.registrationOptions?.find((o) => o.optionType === 'tournament');
   const values = passOption?.values ?? [];
   const pass = values.find((v) => /competitor/i.test(v.name ?? '')) ?? values[0];
-  if (!pass) {
-    throw new Error('start.gg did not return a pass type for this tournament. Add the attendee on start.gg instead.');
-  }
+  if (!pass) throw new Error(t('entrants.noPassType'));
   const event = setup?.events?.find((e) => String(e.id) === String(eventId));
-  if (!event) throw new Error('This event is not part of the tournament returned by start.gg.');
+  if (!event) throw new Error(t('entrants.eventMissing'));
   if (event.useEventSeeds) return { passTypeId: Number(pass.id), phaseId: -2, phaseName: null };
 
   const open = (event.phases ?? []).filter((p) => p.state !== 'COMPLETED');
   const phase =
     open.find((p) => p.isDefault) ?? [...open].sort((a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0))[0];
   if (!phase || phase.state === 'ACTIVE') return { passTypeId: Number(pass.id), phaseId: -1, phaseName: null };
-  return { passTypeId: Number(pass.id), phaseId: Number(phase.id), phaseName: phase.name ?? 'Bracket' };
+  return { passTypeId: Number(pass.id), phaseId: Number(phase.id), phaseName: phase.name ?? t('entrants.defaultPhase') };
 }
 
 /** Payload for the website API's `registerPlayer(tournamentId, fields: RegisterPlayerData!)`. */
@@ -124,12 +134,26 @@ export function registerPlayerFields(attendee: NewAttendee, eventId: Id, placeme
 }
 
 /** Returns an error message, or null when the tag/prefix are acceptable. */
-export function validateTag(gamerTag: string, prefix: string | null | undefined): string | null {
+export function validateTag(
+  gamerTag: string,
+  prefix: string | null | undefined,
+  t?: TranslateFn,
+): string | null {
   const tag = gamerTag.trim();
-  if (!tag) return 'Enter a gamer tag.';
-  if (tag.length > MAX_GAMER_TAG) return `Gamer tag can have at most ${MAX_GAMER_TAG} characters.`;
-  if ((prefix ?? '').trim().length > MAX_PREFIX) return `Prefix can have at most ${MAX_PREFIX} characters.`;
-  if (/[|]/.test(tag) || /[|]/.test(prefix ?? '')) return 'Tags cannot contain "|".';
+  if (!tag) return t ? t('entrants.tagRequired') : 'Enter a gamer tag.';
+  if (tag.length > MAX_GAMER_TAG) {
+    return t
+      ? t('entrants.tagMax', { n: MAX_GAMER_TAG })
+      : `Gamer tag can have at most ${MAX_GAMER_TAG} characters.`;
+  }
+  if ((prefix ?? '').trim().length > MAX_PREFIX) {
+    return t
+      ? t('entrants.prefixMax', { n: MAX_PREFIX })
+      : `Prefix can have at most ${MAX_PREFIX} characters.`;
+  }
+  if (/[|]/.test(tag) || /[|]/.test(prefix ?? '')) {
+    return t ? t('entrants.tagPipe') : 'Tags cannot contain "|".';
+  }
   return null;
 }
 

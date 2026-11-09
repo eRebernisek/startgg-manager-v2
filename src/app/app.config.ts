@@ -9,6 +9,7 @@ import { DialogModule } from '@angular/cdk/dialog';
 import { importProvidersFrom } from '@angular/core';
 import { routes } from './app.routes';
 import { AuthService } from './core/auth.service';
+import { I18nService } from './core/i18n/i18n.service';
 import { ToastService } from './core/toast.service';
 import { WebSessionService } from './core/web-session.service';
 import { Router } from '@angular/router';
@@ -19,6 +20,7 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(DialogModule),
     // Hash routing works on any static host and inside the Capacitor WebView without rewrites.
     provideRouter(routes, withComponentInputBinding(), withHashLocation()),
+    provideAppInitializer(() => inject(I18nService).load()),
     provideAppInitializer(() => inject(AuthService).load()),
     provideAppInitializer(() => inject(WebSessionService).load()),
     provideAppInitializer(() => {

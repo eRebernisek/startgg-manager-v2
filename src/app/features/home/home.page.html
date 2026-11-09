@@ -1,38 +1,34 @@
 <div class="stack">
-  <h1>Start.gg Manager</h1>
+  <h1>{{ 'home.title' | t }}</h1>
   <div class="grid">
     <section class="card stack">
-      <h2>View a bracket</h2>
+      <h2>{{ 'home.viewTitle' | t }}</h2>
       <p class="muted small">
-        Paste any start.gg tournament, event or bracket link (for example
-        <code>https://www.start.gg/tournament/…/event/…</code>). Viewing works without a token. Add a personal API
-        token in Settings to edit when you are an admin of that tournament.
+        {{ 'home.viewBody' | t: { example: 'https://www.start.gg/tournament/…/event/…' } }}
       </p>
       <form class="stack" (ngSubmit)="open()">
         <input
           name="url"
           inputmode="url"
-          placeholder="https://www.start.gg/tournament/…/event/…/brackets/…"
+          [placeholder]="'home.urlPlaceholder' | t"
           [ngModel]="url()"
           (ngModelChange)="url.set($event)"
         />
         @if (error()) {
           <div class="alert error small">{{ error() }}</div>
         }
-        <button type="submit" class="primary" [disabled]="!url().trim()">Open</button>
+        <button type="submit" class="primary" [disabled]="!url().trim()">{{ 'home.open' | t }}</button>
       </form>
     </section>
 
     <section class="card stack">
-      <h2>Manage my tournaments</h2>
+      <h2>{{ 'home.manageTitle' | t }}</h2>
       @if (auth.hasToken()) {
-        <p class="muted small">Pick one of the tournaments you organize to report sets, seed and manage entrants.</p>
-        <a class="btn primary" routerLink="/tournaments">My tournaments</a>
+        <p class="muted small">{{ 'home.manageBody' | t }}</p>
+        <a class="btn primary" routerLink="/tournaments">{{ 'nav.tournaments' | t }}</a>
       } @else {
-        <p class="muted small">
-          Add your start.gg API token to list the tournaments you admin and edit them (report sets, seeding, …).
-        </p>
-        <a class="btn" routerLink="/settings">Add API token</a>
+        <p class="muted small">{{ 'home.manageNoToken' | t }}</p>
+        <a class="btn" routerLink="/settings">{{ 'home.addToken' | t }}</a>
       }
     </section>
   </div>

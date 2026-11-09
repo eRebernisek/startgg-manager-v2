@@ -4,6 +4,8 @@ import { RouterLink } from '@angular/router';
 import { Tournament } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { shortSlug } from '../../core/bracket-url';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { errorMessage, formatDate, profileImage } from '../../shared/display';
 
@@ -11,14 +13,14 @@ const PER_PAGE = 25;
 
 @Component({
   selector: 'app-tournaments-page',
-  imports: [RouterLink, FormsModule, AvatarComponent],
+  imports: [RouterLink, FormsModule, AvatarComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stack">
       <div class="row">
-        <h1>My tournaments</h1>
+        <h1>{{ 'nav.tournaments' | t }}</h1>
         <span class="spacer"></span>
-        <input placeholder="Filter…" [ngModel]="filter()" (ngModelChange)="filter.set($event)" />
+        <input [placeholder]="'tournaments.filter' | t" [ngModel]="filter()" (ngModelChange)="filter.set($event)" />
       </div>
       @if (error()) {
         <div class="alert error">{{ error() }}</div>
@@ -30,26 +32,27 @@ const PER_PAGE = 25;
             <div class="spacer">
               <strong>{{ t.name }}</strong>
               <div class="muted small">
-                {{ formatDate(t.startAt) }}{{ t.city ? ' · ' + t.city : '' }}
+                {{ formatDate(t.startAt, i18n.lang()) }}{{ t.city ? ' · ' + t.city : '' }}
               </div>
             </div>
           </a>
         } @empty {
           @if (!loading()) {
-            <p class="muted" style="padding: 1rem">No tournaments where you are an admin.</p>
+            <p class="muted" style="padding: 1rem">{{ 'tournaments.empty' | t }}</p>
           }
         }
       </div>
       @if (loading()) {
         <div class="spinner"></div>
       } @else if (page() < totalPages()) {
-        <button (click)="loadMore()">Load more</button>
+        <button (click)="loadMore()">{{ 'common.loadMore' | t }}</button>
       }
     </div>
   `,
 })
 export class TournamentsPage implements OnInit {
   private readonly api = inject(StartggApi);
+  protected readonly i18n = inject(I18nService);
 
   protected readonly tournaments = signal<Tournament[]>([]);
   protected readonly page = signal(0);

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { AuthService } from '../auth.service';
+import { I18nService } from '../i18n/i18n.service';
 import { WebSessionService } from '../web-session.service';
 import { DEFAULT_PUBLIC_PROXY_URL } from './public-proxy';
 
@@ -58,6 +59,7 @@ const MAX_CONCURRENCY = 3;
 export class StartggClient {
   private readonly auth = inject(AuthService);
   private readonly web = inject(WebSessionService);
+  private readonly i18n = inject(I18nService);
   private readonly cache = new Map<string, CacheEntry>();
   private readonly inflight = new Map<string, Promise<unknown>>();
   private readonly timestamps: number[] = [];
@@ -122,18 +124,12 @@ export class StartggClient {
   ): Promise<T> {
     const token = this.auth.token();
     if (!token && opts.isMutation) {
-      throw new StartggError(
-        'Editing requires a start.gg API token. Add one in Settings.',
-        'auth',
-      );
+      throw new StartggError(this.i18n.t('api.tokenRequired'), 'auth');
     }
 
     const publicUrl = token ? null : this.resolvePublicEndpoint();
     if (!token && !publicUrl) {
-      throw new StartggError(
-        'Cannot load start.gg without a token (browser CORS). Deploy proxy/ and set its URL in Settings, or add an API token.',
-        'network',
-      );
+      throw new StartggError(this.i18n.t('api.corsNoToken'), 'network');
     }
 
     const [url, headers] = token
@@ -165,9 +161,7 @@ export class StartggClient {
           continue;
         }
         throw new StartggError(
-          token
-            ? 'Could not reach start.gg. Check your connection.'
-            : 'Could not reach start.gg in view-only mode. Check your connection, or add an API token in Settings.',
+          token ? this.i18n.t('api.reachOfficial') : this.i18n.t('api.reachViewOnly'),
           'network',
         );
       } finally {
@@ -187,21 +181,20 @@ export class StartggClient {
           await delay(jitter(1000 * 2 ** attempt));
           continue;
         }
-        throw new StartggError('start.gg rate limit reached, try again in a minute.', 'rateLimit');
+        throw new StartggError(this.i18n.t('api.rateLimit'), 'rateLimit');
       }
 
       // Website API answers `data: []` for rejected admin mutations when there is no session.
       if (!token && Array.isArray((body as { data?: unknown }).data)) {
         throw new StartggError(
-          opts.isMutation
-            ? 'Editing requires a start.gg API token. Add one in Settings.'
-            : 'start.gg returned no data.',
+          opts.isMutation ? this.i18n.t('api.tokenRequired') : this.i18n.t('api.noData'),
           opts.isMutation ? 'auth' : 'graphql',
         );
       }
 
       if (body.success === false || res.status === 401 || res.status === 400) {
-        const msg = body.message ?? `Request failed (HTTP ${res.status}).`;
+        // Prefer start.gg's own message when present; only our HTTP fallback is translated.
+        const msg = body.message ?? this.i18n.t('api.requestFailed', { status: res.status });
         if (isRateLimitMessage(msg)) {
           throw new StartggError(msg, 'rateLimit');
         }
@@ -231,7 +224,7 @@ export class StartggClient {
           await delay(jitter(800 * 2 ** attempt));
           continue;
         }
-        throw new StartggError(`start.gg request failed (HTTP ${res.status}).`, 'network');
+        throw new StartggError(this.i18n.t('api.httpFailed', { status: res.status }), 'network');
       }
       return body.data;
     }

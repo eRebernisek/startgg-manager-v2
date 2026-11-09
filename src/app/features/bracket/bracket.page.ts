@@ -24,6 +24,8 @@ import {
   sortPhaseGroups,
   startPool,
 } from '../../core/bracket-start';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { ToastService } from '../../core/toast.service';
 import { errorMessage } from '../../shared/display';
 import { EventStore } from '../event/event.store';
@@ -33,20 +35,20 @@ import { confirmBracketStart } from './start-bracket.dialog';
 
 @Component({
   selector: 'app-bracket-page',
-  imports: [FormsModule, BracketViewComponent],
+  imports: [FormsModule, BracketViewComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stack">
       @if (!phases().length) {
-        <p class="muted">No phases published for this event yet.</p>
+        <p class="muted">{{ 'bracket.noPhases' | t }}</p>
       } @else {
         <div class="row">
           <label class="field">
-            Phase
+            {{ 'common.phase' | t }}
             <select
               [ngModel]="phaseId()"
               (ngModelChange)="onPhaseChange($event)"
-              [attr.aria-label]="'Phase'"
+              [attr.aria-label]="'common.phase' | t"
             >
               @for (p of phases(); track p.id) {
                 <option [value]="'' + p.id">{{ p.name }}</option>
@@ -55,11 +57,11 @@ import { confirmBracketStart } from './start-bracket.dialog';
           </label>
           @if (groups().length > 1) {
             <label class="field">
-              Group
+              {{ 'common.group' | t }}
               <select
                 [ngModel]="groupId()"
                 (ngModelChange)="onGroupChange($event)"
-                [attr.aria-label]="'Group'"
+                [attr.aria-label]="'common.group' | t"
               >
                 @for (g of groups(); track g.id) {
                   <option [value]="'' + g.id">{{ g.displayIdentifier || g.id }}</option>
@@ -71,16 +73,16 @@ import { confirmBracketStart } from './start-bracket.dialog';
           @if (progress()) {
             <span class="muted small">{{ progress() }}</span>
           } @else if (loading() && displaySets().length) {
-            <span class="muted small">Updating…</span>
+            <span class="muted small">{{ 'common.updating' | t }}</span>
           }
           @if (store.canEdit() && group()) {
             @if (started()) {
-              <button type="button" class="sm start-btn running" disabled title="This bracket is running on start.gg">
-                <span class="dot" aria-hidden="true"></span>Running
+              <button type="button" class="sm start-btn running" disabled [attr.title]="'bracket.runningTitle' | t">
+                <span class="dot" aria-hidden="true"></span>{{ 'bracket.running' | t }}
               </button>
             } @else {
               <button type="button" class="primary sm start-btn" [disabled]="starting()" (click)="startBracket()">
-                {{ starting() ? 'Starting…' : 'Start bracket' }}
+                {{ (starting() ? 'bracket.starting' : 'bracket.start') | t }}
               </button>
             }
           }
@@ -89,7 +91,7 @@ import { confirmBracketStart } from './start-bracket.dialog';
         @if (store.syncFailed(); as syncErr) {
           <div class="alert error row">
             <span class="spacer">{{ syncErr }}</span>
-            <button type="button" class="sm" (click)="retrySync()">Retry</button>
+            <button type="button" class="sm" (click)="retrySync()">{{ 'common.retry' | t }}</button>
           </div>
         }
         @if (error()) {
@@ -97,11 +99,11 @@ import { confirmBracketStart } from './start-bracket.dialog';
         }
         @if (rebuilding()) {
           <div class="alert info small row rebuild-banner">
-            <span class="spinner sm"></span>Rebuilding…
+            <span class="spinner sm"></span>{{ 'common.rebuilding' | t }}
           </div>
         }
         @if (loading() && !displaySets().length) {
-          <div class="spinner" aria-label="Loading bracket"></div>
+          <div class="spinner" [attr.aria-label]="'bracket.loading' | t"></div>
         } @else if (displaySets().length) {
           <app-bracket-view
             class="bracket-canvas"
@@ -114,9 +116,9 @@ import { confirmBracketStart } from './start-bracket.dialog';
           />
         } @else if (!loading() && !rebuilding()) {
           @if (!groups().length) {
-            <p class="muted">This phase has no pools yet.</p>
+            <p class="muted">{{ 'bracket.noPools' | t }}</p>
           } @else {
-            <p class="muted">No sets in this phase group yet.</p>
+            <p class="muted">{{ 'bracket.noSets' | t }}</p>
           }
         }
       }
@@ -153,6 +155,7 @@ import { confirmBracketStart } from './start-bracket.dialog';
 export class BracketPage implements OnDestroy {
   private readonly api = inject(StartggApi);
   private readonly store = inject(EventStore);
+  protected readonly i18n = inject(I18nService);
   private readonly dialog = inject(Dialog);
   private readonly toast = inject(ToastService);
   private readonly injector = inject(Injector);
@@ -293,7 +296,9 @@ export class BracketPage implements OnDestroy {
     const phase = this.phases().find((p) => String(p.id) === this.phaseId());
     if (!group || !phase) return;
     const poolName =
-      this.groups().length > 1 ? `${phase.name} pool ${group.displayIdentifier ?? group.id}` : phase.name;
+      this.groups().length > 1
+        ? this.i18n.t('bracket.poolName', { phase: phase.name, pool: group.displayIdentifier ?? group.id })
+        : phase.name;
     this.error.set(null);
     try {
       const sets = this.sets().length ? this.sets() : await this.api.phaseGroupSets(group.id);
@@ -302,16 +307,16 @@ export class BracketPage implements OnDestroy {
 
       this.starting.set(true);
       const beforeSignature = bracketSignature(sets);
-      const realSetId = await startPool(this.api, sets);
-      this.toast.ok('Bracket started');
+      const realSetId = await startPool(this.api, sets, (key, params) => this.i18n.t(key, params));
+      this.toast.ok(this.i18n.t('bracket.started'));
       await this.store.bracketChanged(
         phase.id,
         rebuiltAfterStart(beforeSignature, realSetId),
-        'Bracket started — waiting for start.gg to create the sets…',
-        'Bracket sets ready — you can report results',
+        this.i18n.t('bracket.startedWaiting'),
+        this.i18n.t('bracket.setsReady'),
       );
     } catch (e) {
-      const message = `Bracket not started: ${errorMessage(e)}`;
+      const message = this.i18n.t('bracket.notStarted', { message: errorMessage(e) });
       this.error.set(message);
       this.toast.error(message);
     } finally {
@@ -355,7 +360,11 @@ export class BracketPage implements OnDestroy {
     try {
       const [sets, seeds] = await Promise.all([
         this.api.phaseGroupSets(groupId, (page, total) => {
-          if (token === this.loadToken) this.progress.set(total > 1 ? `Loading bracket ${page}/${total}` : '');
+          if (token === this.loadToken) {
+            this.progress.set(
+              total > 1 ? this.i18n.t('bracket.loadingProgress', { page, total }) : '',
+            );
+          }
         }),
         this.api.phaseGroupSeeds(groupId).catch(() => [] as Seed[]),
       ]);

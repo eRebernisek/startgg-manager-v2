@@ -2,6 +2,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, inject, signal } from '@angular/core';
 import { Id } from '../../core/api/models';
 import { PlayerProfile, StartggApi } from '../../core/api/startgg-api.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { errorMessage, profileImage } from '../../shared/display';
 
@@ -16,7 +17,7 @@ export function openPlayerDialog(dialog: Dialog, injector: Injector, playerId: I
 
 @Component({
   selector: 'app-player-dialog',
-  imports: [AvatarComponent],
+  imports: [AvatarComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog">
@@ -43,7 +44,7 @@ export function openPlayerDialog(dialog: Dialog, injector: Injector, playerId: I
         } @else {
           <span class="spacer"></span>
         }
-        <button class="ghost" (click)="ref.close()" aria-label="Close">✕</button>
+        <button class="ghost" (click)="ref.close()" [attr.aria-label]="'common.close' | t">✕</button>
       </header>
       <div class="body stack">
         @if (loading()) {
@@ -62,7 +63,7 @@ export function openPlayerDialog(dialog: Dialog, injector: Injector, playerId: I
             }
           }
           @if (p.recentStandings?.length) {
-            <h3>Recent results</h3>
+            <h3>{{ 'player.recent' | t }}</h3>
             <div class="card" style="padding: 0">
               @for (s of p.recentStandings; track $index) {
                 <div class="list-item small">
@@ -77,7 +78,7 @@ export function openPlayerDialog(dialog: Dialog, injector: Injector, playerId: I
           }
           @if (p.user?.slug) {
             <a class="btn" [href]="'https://www.start.gg/' + p.user?.slug" target="_blank" rel="noopener">
-              start.gg profile ↗
+              {{ 'player.profile' | t }}
             </a>
           }
         }

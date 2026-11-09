@@ -2,18 +2,19 @@ import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angu
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { shortSlug, startggAdminUrl } from '../../core/bracket-url';
 import { BreadcrumbService, eventCrumbKey, tournamentCrumbKey } from '../../core/breadcrumbs';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { EventStore } from './event.store';
 
 @Component({
   selector: 'app-event-page',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TPipe],
   providers: [EventStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (store.error()) {
       <div class="alert error row">
         <span class="spacer">{{ store.error() }}</span>
-        <button type="button" class="sm" (click)="retry()">Retry</button>
+        <button type="button" class="sm" (click)="retry()">{{ 'common.retry' | t }}</button>
       </div>
     }
     @if (store.event(); as e) {
@@ -22,24 +23,25 @@ import { EventStore } from './event.store';
           <a class="muted small" [routerLink]="['/tournament', tournament()]">{{ e.tournament.name }}</a>
           <h1>{{ e.name }}</h1>
           <div class="muted small">
-            {{ e.videogame?.displayName ?? e.videogame?.name }} · {{ e.numEntrants ?? 0 }} entrants
+            {{ e.videogame?.displayName ?? e.videogame?.name }} ·
+            {{ 'tournament.entrantsCount' | t: { n: e.numEntrants ?? 0 } }}
             @if (store.phases().length) {
-              · {{ store.phases().length }} phases
+              · {{ 'event.phasesCount' | t: { n: store.phases().length } }}
             }
           </div>
         </div>
         @if (store.canEdit()) {
-          <span class="badge ok">Admin · can edit</span>
+          <span class="badge ok">{{ 'event.adminEdit' | t }}</span>
         } @else {
-          <span class="badge" [title]="store.readOnlyReason()">Read-only</span>
+          <span class="badge" [title]="store.readOnlyReason()">{{ 'common.readOnly' | t }}</span>
         }
-        <a class="btn sm" [href]="startggUrl()" target="_blank" rel="noopener">start.gg ↗</a>
+        <a class="btn sm" [href]="startggUrl()" target="_blank" rel="noopener">{{ 'event.startgg' | t }}</a>
       </div>
       <nav class="tabs">
-        <a routerLink="bracket" routerLinkActive="active">Bracket</a>
-        <a routerLink="sets" routerLinkActive="active">Sets</a>
-        <a routerLink="entrants" routerLinkActive="active">Entrants</a>
-        <a routerLink="seeding" routerLinkActive="active">Seeding</a>
+        <a routerLink="bracket" routerLinkActive="active">{{ 'nav.section.bracket' | t }}</a>
+        <a routerLink="sets" routerLinkActive="active">{{ 'nav.section.sets' | t }}</a>
+        <a routerLink="entrants" routerLinkActive="active">{{ 'nav.section.entrants' | t }}</a>
+        <a routerLink="seeding" routerLinkActive="active">{{ 'nav.section.seeding' | t }}</a>
       </nav>
       @if (store.syncing(); as msg) {
         <div class="alert info small row" style="margin-bottom: 0.75rem">
@@ -47,12 +49,12 @@ import { EventStore } from './event.store';
         </div>
       }
       @if (!store.phases().length) {
-        <p class="muted">This event has no phases yet.</p>
+        <p class="muted">{{ 'event.noPhases' | t }}</p>
       } @else {
         <router-outlet />
       }
     } @else if (store.loading()) {
-      <div class="spinner" aria-label="Loading event"></div>
+      <div class="spinner" [attr.aria-label]="'event.loading' | t"></div>
     }
   `,
 })

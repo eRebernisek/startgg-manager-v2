@@ -1,4 +1,6 @@
 import { BracketSet, Entrant, Image, Participant, SetState } from '../core/api/models';
+import type { I18nKey } from '../core/i18n/en';
+import type { AppLang, TranslateFn } from '../core/i18n/i18n.service';
 
 export function profileImage(images: Image[] | null | undefined): string | null {
   if (!images?.length) return null;
@@ -27,18 +29,19 @@ export function initials(name: string | null | undefined): string {
   return clean.slice(0, 2).toUpperCase() || '?';
 }
 
-const STATE_LABELS: Record<number, string> = {
-  [SetState.Created]: 'Not started',
-  [SetState.InProgress]: 'In progress',
-  [SetState.Completed]: 'Completed',
-  [SetState.Ready]: 'Ready',
-  [SetState.Invalid]: 'Invalid',
-  [SetState.Called]: 'Called',
-  [SetState.Queued]: 'Queued',
+const STATE_KEYS: Record<number, I18nKey> = {
+  [SetState.Created]: 'state.created',
+  [SetState.InProgress]: 'state.inProgress',
+  [SetState.Completed]: 'state.completed',
+  [SetState.Ready]: 'state.ready',
+  [SetState.Invalid]: 'state.invalid',
+  [SetState.Called]: 'state.called',
+  [SetState.Queued]: 'state.queued',
 };
 
-export function setStateLabel(state: number): string {
-  return STATE_LABELS[state] ?? `State ${state}`;
+export function setStateLabel(state: number, t: TranslateFn): string {
+  const key = STATE_KEYS[state];
+  return key ? t(key) : t('state.unknown', { n: state });
 }
 
 export function setStateClass(set: BracketSet): string {
@@ -54,8 +57,10 @@ export function setStateClass(set: BracketSet): string {
   }
 }
 
-export function formatDate(ts: number | null | undefined): string {
-  return ts ? new Date(ts * 1000).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
+export function formatDate(ts: number | null | undefined, lang: AppLang = 'en'): string {
+  if (!ts) return '';
+  const locale = lang === 'pt' ? 'pt-BR' : 'en-US';
+  return new Date(ts * 1000).toLocaleDateString(locale, { dateStyle: 'medium' });
 }
 
 export function errorMessage(err: unknown): string {

@@ -1,6 +1,8 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { I18nService } from '../core/i18n/i18n.service';
+import { TPipe } from '../core/i18n/t.pipe';
 
 export interface ConfirmDialogData {
   title: string;
@@ -29,12 +31,13 @@ export async function askConfirm(dialog: Dialog, data: ConfirmDialogData): Promi
 
 @Component({
   selector: 'app-confirm-dialog',
+  imports: [TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog" role="alertdialog" [attr.aria-labelledby]="titleId">
       <header>
         <strong [id]="titleId" class="spacer">{{ data.title }}</strong>
-        <button type="button" class="ghost" (click)="ref.close(false)" aria-label="Close">✕</button>
+        <button type="button" class="ghost" (click)="ref.close(false)" [attr.aria-label]="'common.close' | t">✕</button>
       </header>
       <div class="body stack">
         <p>{{ data.body }}</p>
@@ -45,7 +48,7 @@ export async function askConfirm(dialog: Dialog, data: ConfirmDialogData): Promi
       <footer>
         <span class="spacer"></span>
         <button type="button" class="ghost" (click)="ref.close(false)">
-          {{ data.cancelLabel ?? 'Cancel' }}
+          {{ data.cancelLabel ?? i18n.t('common.cancel') }}
         </button>
         <button
           type="button"
@@ -53,7 +56,7 @@ export async function askConfirm(dialog: Dialog, data: ConfirmDialogData): Promi
           [class.primary]="!data.danger"
           (click)="ref.close(true)"
         >
-          {{ data.confirmLabel ?? 'OK' }}
+          {{ data.confirmLabel ?? i18n.t('common.ok') }}
         </button>
       </footer>
     </div>
@@ -62,5 +65,6 @@ export async function askConfirm(dialog: Dialog, data: ConfirmDialogData): Promi
 export class ConfirmDialog {
   protected readonly ref = inject<DialogRef<boolean>>(DialogRef);
   protected readonly data = inject<ConfirmDialogData>(DIALOG_DATA);
+  protected readonly i18n = inject(I18nService);
   protected readonly titleId = 'confirm-dialog-title';
 }

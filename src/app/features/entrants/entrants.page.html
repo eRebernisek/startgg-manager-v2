@@ -1,15 +1,15 @@
 <section class="attendees stack">
   <div class="att-head">
-    <h2 class="spacer">Attendees</h2>
+    <h2 class="spacer">{{ 'entrants.title' | t }}</h2>
     @if (store.canEdit()) {
-      <button type="button" class="primary" (click)="add()">Add Attendee</button>
+      <button type="button" class="primary" (click)="add()">{{ 'entrants.add' | t }}</button>
     }
     <a
       class="btn hide-sm"
       [href]="attendeesUrl()"
       target="_blank"
       rel="noopener"
-      title="Open the start.gg admin Attendees page"
+      [attr.title]="'entrants.openAdmin' | t"
     >
       start.gg ↗
     </a>
@@ -19,12 +19,12 @@
     <div class="alert info small row">
       <span class="spacer">
         @if (transportMissing()) {
-          To add, rename or remove attendees in the browser, set a proxy URL in Settings (or use the Android app).
+          {{ 'entrants.needProxy' | t }}
         } @else {
-          To add, rename or remove attendees, add your start.gg website session in Settings.
+          {{ 'entrants.needSession' | t }}
         }
       </span>
-      <a class="btn sm" routerLink="/settings">Settings</a>
+      <a class="btn sm" routerLink="/settings">{{ 'nav.settings' | t }}</a>
     </div>
   }
 
@@ -32,8 +32,8 @@
     <input
       class="spacer"
       type="search"
-      placeholder="Search"
-      aria-label="Search attendees"
+      [placeholder]="'common.search' | t"
+      [attr.aria-label]="'entrants.filterAttendees' | t"
       [ngModel]="query()"
       (ngModelChange)="onQuery($event)"
     />
@@ -44,18 +44,13 @@
       [attr.aria-expanded]="showFilters()"
       (click)="showFilters.set(!showFilters())"
     >
-      <span aria-hidden="true">☰</span> Filters
+      <span aria-hidden="true">☰</span> {{ 'entrants.filters' | t }}
     </button>
   </div>
 
   @if (showFilters()) {
-    <div class="filter-chips" role="radiogroup" aria-label="Filter attendees">
-      @for (f of [
-        { id: 'all', label: 'All' },
-        { id: 'account', label: 'With account' },
-        { id: 'noAccount', label: 'Without account' },
-        { id: 'unseeded', label: 'Not seeded' }
-      ]; track f.id) {
+    <div class="filter-chips" role="radiogroup" [attr.aria-label]="'entrants.filterAttendees' | t">
+      @for (f of filterOptions; track f.id) {
         <button
           type="button"
           class="sm chip"
@@ -64,7 +59,7 @@
           [class.active]="filter() === f.id"
           (click)="filter.set($any(f.id))"
         >
-          {{ f.label }}
+          {{ f.labelKey | t }}
         </button>
       }
     </div>
@@ -78,9 +73,9 @@
 
   <div class="card att-table">
     <div class="att-row att-header" aria-hidden="true">
-      <span>Attendee</span>
-      <span class="col-loc">Location</span>
-      <span class="col-seed">Seed</span>
+      <span>{{ 'entrants.colAttendee' | t }}</span>
+      <span class="col-loc">{{ 'entrants.colLocation' | t }}</span>
+      <span class="col-seed">{{ 'entrants.colSeed' | t }}</span>
       <span></span>
     </div>
     @for (r of visible(); track r.entrantId) {
@@ -98,7 +93,7 @@
               @if (r.realName) {
                 {{ r.realName }}
               } @else if (r.noAccount) {
-                No start.gg account
+                {{ 'entrants.noAccount' | t }}
               }
             </span>
           </span>
@@ -106,15 +101,15 @@
         <span class="col-loc small">{{ r.country }}</span>
         <span class="col-seed">
           @if (r.seed != null) {
-            <span class="badge seed" [title]="'Seed ' + r.seed">#{{ r.seed }}</span>
+            <span class="badge seed" [attr.title]="'entrants.seedTitle' | t: { n: r.seed }">#{{ r.seed }}</span>
           } @else {
-            <span class="badge warn" title="Not placed in the bracket">Unseeded</span>
+            <span class="badge warn" [attr.title]="'entrants.unseededTitle' | t">{{ 'entrants.unseeded' | t }}</span>
           }
         </span>
         <button
           type="button"
           class="ghost kebab"
-          [attr.aria-label]="'Actions for ' + label(r.tag, r.prefix)"
+          [attr.aria-label]="'entrants.actionsFor' | t: { name: label(r.tag, r.prefix) }"
           [cdkMenuTriggerFor]="rowMenu"
           [cdkMenuTriggerData]="{ $implicit: r }"
         >
@@ -124,7 +119,11 @@
     } @empty {
       @if (!loading()) {
         <p class="muted empty">
-          {{ query() ? 'No attendees match “' + query() + '”.' : 'No attendees in this event yet.' }}
+          {{
+            query()
+              ? ('entrants.emptySearch' | t: { query: query() })
+              : ('entrants.empty' | t)
+          }}
         </p>
       }
     }
@@ -133,18 +132,18 @@
   @if (loading()) {
     <div class="spinner"></div>
   } @else if (page() < totalPages()) {
-    <button type="button" (click)="loadMore()">Load more</button>
+    <button type="button" (click)="loadMore()">{{ 'common.loadMore' | t }}</button>
   }
 </section>
 
 <ng-template #rowMenu let-r>
   <div class="att-menu" cdkMenu>
     @if (r.playerId != null) {
-      <button type="button" cdkMenuItem (cdkMenuItemTriggered)="viewPlayer(r)">View player</button>
+      <button type="button" cdkMenuItem (cdkMenuItemTriggered)="viewPlayer(r)">{{ 'entrants.viewPlayer' | t }}</button>
     }
     @if (store.canEdit()) {
       <button type="button" cdkMenuItem [cdkMenuItemDisabled]="r.memberCount !== 1" (cdkMenuItemTriggered)="rename(r)">
-        Change tag
+        {{ 'entrants.changeTag' | t }}
       </button>
       <button
         type="button"
@@ -153,12 +152,12 @@
         [cdkMenuItemDisabled]="r.memberCount !== 1"
         (cdkMenuItemTriggered)="remove(r)"
       >
-        Remove from event
+        {{ 'entrants.removeFromEvent' | t }}
       </button>
     }
     @if (profileUrl(r); as url) {
-      <a cdkMenuItem [href]="url" target="_blank" rel="noopener">start.gg profile ↗</a>
+      <a cdkMenuItem [href]="url" target="_blank" rel="noopener">{{ 'entrants.profile' | t }}</a>
     }
-    <a cdkMenuItem [href]="attendeesUrl()" target="_blank" rel="noopener">Manage on start.gg ↗</a>
+    <a cdkMenuItem [href]="attendeesUrl()" target="_blank" rel="noopener">{{ 'entrants.manage' | t }}</a>
   </div>
 </ng-template>

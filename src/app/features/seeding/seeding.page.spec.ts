@@ -5,9 +5,17 @@ import { of } from 'rxjs';
 import { BracketSet, Phase, Seed, SetState } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { StartggError } from '../../core/api/startgg-client';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { StorageService } from '../../core/storage.service';
 import { ToastService } from '../../core/toast.service';
 import { EventStore } from '../event/event.store';
 import { SeedingPage } from './seeding.page';
+
+const memoryStorage = {
+  get: async () => null as string | null,
+  set: async () => undefined,
+  remove: async () => undefined,
+};
 
 const seed = (id: number, seedNum: number, name: string): Seed => ({
   id,
@@ -63,6 +71,8 @@ describe('SeedingPage', () => {
         { provide: EventStore, useValue: store },
         { provide: ToastService, useValue: toast },
         { provide: Dialog, useValue: dialog },
+        { provide: StorageService, useValue: memoryStorage },
+        I18nService,
       ],
     });
     const fixture = TestBed.createComponent(SeedingPage);

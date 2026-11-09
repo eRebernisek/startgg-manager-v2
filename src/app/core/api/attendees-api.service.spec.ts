@@ -1,8 +1,16 @@
 import { TestBed } from '@angular/core/testing';
+import { I18nService } from '../i18n/i18n.service';
+import { StorageService } from '../storage.service';
 import { AttendeesApi } from './attendees-api.service';
 import { StartggApi } from './startgg-api.service';
 import { StartggWebClient } from './startgg-web-client';
 import * as W from './web-documents';
+
+const memoryStorage = {
+  get: async () => null as string | null,
+  set: async () => undefined,
+  remove: async () => undefined,
+};
 
 /** Responses start.gg's website API gave live on many-api-test / teste-rivals-2. */
 const SETUP = {
@@ -37,6 +45,8 @@ describe('AttendeesApi', () => {
       providers: [
         { provide: StartggWebClient, useValue: { request } },
         { provide: StartggApi, useValue: { userBySlug } },
+        { provide: StorageService, useValue: memoryStorage },
+        I18nService,
       ],
     });
   });

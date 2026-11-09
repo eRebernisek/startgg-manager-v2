@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { BracketSet, BracketType, Entrant, Id, Seed } from '../../core/api/models';
 import {
   BracketEdge,
@@ -9,6 +9,9 @@ import {
   layoutElimination,
   roundRobinTable,
 } from '../../core/bracket-layout';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { translateRoundName } from '../../core/i18n/round-names';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
 import { SetBoxComponent } from '../sets/set-box.component';
 
@@ -28,12 +31,13 @@ interface RenderedSide {
 
 @Component({
   selector: 'app-bracket-view',
-  imports: [NgTemplateOutlet, SetBoxComponent, EntrantChipComponent],
+  imports: [NgTemplateOutlet, SetBoxComponent, EntrantChipComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './bracket-view.component.html',
   styleUrl: './bracket-view.component.scss',
 })
 export class BracketViewComponent {
+  private readonly i18n = inject(I18nService);
   readonly sets = input.required<BracketSet[]>();
   readonly seeds = input<Seed[]>([]);
   readonly bracketType = input<BracketType | null | undefined>(null);
@@ -42,6 +46,11 @@ export class BracketViewComponent {
   protected readonly W = W;
   protected readonly H = H;
   protected readonly COL = W + GAP_X;
+
+  protected roundTitle(title: string): string {
+    this.i18n.lang();
+    return translateRoundName(title, (key, params) => this.i18n.t(key, params));
+  }
 
   protected readonly entrants = computed(() => {
     const map = new Map<string, Entrant>();

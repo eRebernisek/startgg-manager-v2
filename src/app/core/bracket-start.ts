@@ -1,6 +1,7 @@
 import { BracketSet, Id, PhaseGroupRef } from './api/models';
 import { isPreviewSet } from './bracket-layout';
 import { bracketSignature } from './bracket-reset';
+import { translateEn, type TranslateFn } from './i18n/i18n.service';
 
 /** Pool `ActivityState` 1 = created (not started). */
 export function poolStarted(group: PhaseGroupRef | null | undefined): boolean {
@@ -71,18 +72,23 @@ export function sortPhaseGroups<T extends Pick<PhaseGroupRef, 'displayIdentifier
   });
 }
 
-export async function startPool(api: StartApi, sets: readonly BracketSet[]): Promise<Id> {
+export async function startPool(
+  api: StartApi,
+  sets: readonly BracketSet[],
+  t: TranslateFn = translateEn,
+): Promise<Id> {
   const first = pickStartSet(sets);
-  if (!first) throw new Error('No preview sets to start. Reload the bracket and try again.');
+  if (!first) throw new Error(t('bracket.noPreviewSets'));
   const called = await api.markSetCalled(first.id);
-  if (!called || isPreviewSet(called)) throw new Error('start.gg did not start the bracket.');
+  if (!called || isPreviewSet(called)) throw new Error(t('bracket.didNotStart'));
   try {
     await api.resetSet(called.id, false);
     return called.id;
   } catch (e) {
-    const label = [called.fullRoundText, called.identifier].filter(Boolean).join(' ') || `set ${called.id}`;
+    const label =
+      [called.fullRoundText, called.identifier].filter(Boolean).join(' ') || t('seeding.setFallback', { id: called.id });
     throw new Error(
-      `Bracket started, but ${label} is still marked as called: ${e instanceof Error ? e.message : String(e)}`,
+      t('bracket.stillCalled', { label, message: e instanceof Error ? e.message : String(e) }),
     );
   }
 }

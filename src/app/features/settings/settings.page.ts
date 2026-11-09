@@ -7,6 +7,8 @@ import { StartggError } from '../../core/api/startgg-client';
 import { StartggWebClient } from '../../core/api/startgg-web-client';
 import { CurrentUser } from '../../core/api/models';
 import { AuthService } from '../../core/auth.service';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { ToastService } from '../../core/toast.service';
 import { WebSessionService, normalizeSession } from '../../core/web-session.service';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -14,7 +16,7 @@ import { errorMessage, profileImage } from '../../shared/display';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, RouterLink, AvatarComponent],
+  imports: [FormsModule, RouterLink, AvatarComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings.page.html',
 })
@@ -25,6 +27,7 @@ export class SettingsPage implements OnInit {
   private readonly attendees = inject(AttendeesApi);
   private readonly api = inject(StartggApi);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   protected readonly tokenInput = signal('');
   protected readonly showToken = signal(false);
@@ -61,9 +64,13 @@ export class SettingsPage implements OnInit {
       // Temporarily set so the client can authenticate the verification call.
       await this.auth.setToken(trimmed);
       const user = await this.api.currentUser();
-      if (!user) throw new StartggError('Token did not return a user.', 'auth');
+      if (!user) throw new StartggError(this.i18n.t('settings.tokenNoUser'), 'auth');
       this.user.set(user);
-      this.toast.ok(`Signed in as ${user.player?.gamerTag ?? user.name ?? 'user'}`);
+      this.toast.ok(
+        this.i18n.t('settings.signedIn', {
+          name: user.player?.gamerTag ?? user.name ?? this.i18n.t('settings.userFallback'),
+        }),
+      );
     } catch (e) {
       await this.auth.clear();
       this.error.set(errorMessage(e));
@@ -94,7 +101,7 @@ export class SettingsPage implements OnInit {
     }
     const value = normalizeSession(this.sessionInput());
     if (!value) {
-      this.sessionError.set('Paste only the value of the gg_session cookie (or "gg_session=…").');
+      this.sessionError.set(this.i18n.t('settings.sessionBadPaste'));
       return;
     }
     this.sessionBusy.set(true);
@@ -102,10 +109,12 @@ export class SettingsPage implements OnInit {
       await this.saveProxy();
       await this.web.setSession(value);
       const user = await this.attendees.sessionUser();
-      if (!user) throw new StartggError('start.gg does not recognise this session (logged out or expired).', 'auth');
+      if (!user) throw new StartggError(this.i18n.t('settings.sessionUnrecognized'), 'auth');
       this.sessionUser.set(user);
       this.sessionInput.set(value);
-      this.toast.ok(`Website session valid for ${user.player?.gamerTag ?? user.slug}`);
+      this.toast.ok(
+        this.i18n.t('settings.sessionToast', { name: user.player?.gamerTag ?? user.slug ?? '' }),
+      );
     } catch (e) {
       await this.web.clearSession();
       this.sessionError.set(errorMessage(e));

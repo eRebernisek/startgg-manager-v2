@@ -15,52 +15,48 @@ import {
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
 import { errorMessage } from '../../shared/display';
 import {
-  STARTED_PHASE_HINT,
   buildSeedMapping,
   phaseStarted,
   seedingApplied,
   seedingErrorMessage,
 } from '../../core/seeding-save';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { ToastService } from '../../core/toast.service';
 import { EventStore } from '../event/event.store';
 import { confirmBracketReset } from './reset-bracket.dialog';
 
 @Component({
   selector: 'app-seeding-page',
-  imports: [FormsModule, DragDropModule, EntrantChipComponent],
+  imports: [FormsModule, DragDropModule, EntrantChipComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stack">
       @if (store.canEdit()) {
-        <div class="alert info small">
-          Seeding uses <strong>seed IDs</strong>, not entrant IDs. Drag to reorder, then save the full mapping for the
-          phase.
-        </div>
+        <div class="alert info small">{{ 'seeding.editHint' | t }}</div>
       } @else {
-        <div class="alert info small">
-          Viewing seeds (read-only). {{ store.readOnlyReason() }}
-        </div>
+        <div class="alert info small">{{ 'seeding.viewHint' | t: { reason: store.readOnlyReason() } }}</div>
       }
 
       <div class="row">
         <label class="field">
-          Phase
+          {{ 'common.phase' | t }}
           <select [ngModel]="phaseId()" (ngModelChange)="onPhase($event)">
             @for (p of phases(); track p.id) {
-              <option [value]="p.id">{{ p.name }} ({{ p.numSeeds ?? '?' }} seeds)</option>
+              <option [value]="p.id">{{ 'seeding.seedsCount' | t: { name: p.name, n: p.numSeeds ?? '?' } }}</option>
             }
           </select>
         </label>
         <span class="spacer"></span>
         @if (store.canEdit()) {
           @if (started()) {
-            <button type="button" class="danger" [disabled]="busy()" (click)="resetBracket()">Reset bracket</button>
+            <button type="button" class="danger" [disabled]="busy()" (click)="resetBracket()">{{ 'seeding.reset' | t }}</button>
           }
           <button type="button" class="primary" [disabled]="busy() || !dirty()" (click)="save()">
-            {{ saving() ? 'Saving…' : 'Save seeding' }}
+            {{ (saving() ? 'common.saving' : 'seeding.save') | t }}
           </button>
         } @else {
-          <span class="badge" [title]="store.readOnlyReason()">Read-only</span>
+          <span class="badge" [title]="store.readOnlyReason()">{{ 'common.readOnly' | t }}</span>
         }
       </div>
 
@@ -68,8 +64,8 @@ import { confirmBracketReset } from './reset-bracket.dialog';
         <div class="alert info small row"><span class="spinner sm"></span>{{ p }}</div>
       } @else if (started() && store.canEdit()) {
         <div class="alert warn small row">
-          <span class="spacer">This phase has started on start.gg, which rejects seeding changes. {{ startedHint }}</span>
-          <button type="button" class="danger sm" [disabled]="busy()" (click)="resetBracket()">Reset bracket</button>
+          <span class="spacer">{{ 'seeding.startedWarn' | t: { hint: startedHint } }}</span>
+          <button type="button" class="danger sm" [disabled]="busy()" (click)="resetBracket()">{{ 'seeding.reset' | t }}</button>
         </div>
       }
       @if (error()) {
@@ -95,7 +91,7 @@ import { confirmBracketReset } from './reset-bracket.dialog';
           </div>
         } @empty {
           @if (!loading()) {
-            <p class="muted" style="padding: 1rem">No seeds for this phase.</p>
+            <p class="muted" style="padding: 1rem">{{ 'seeding.empty' | t }}</p>
           }
         }
       </div>
@@ -130,6 +126,7 @@ export class SeedingPage implements OnInit {
   private readonly api = inject(StartggApi);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(Dialog);
+  private readonly i18n = inject(I18nService);
 
   protected readonly phases = computed(() => this.store.phases());
   protected readonly phaseId = signal('');
@@ -140,7 +137,9 @@ export class SeedingPage implements OnInit {
   protected readonly saving = signal(false);
   protected readonly progress = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
-  protected readonly startedHint = STARTED_PHASE_HINT;
+  protected get startedHint(): string {
+    return this.i18n.t('seeding.startedHint');
+  }
   protected readonly started = computed(() =>
     phaseStarted(this.phases().find((p) => String(p.id) === this.phaseId())),
   );
@@ -183,18 +182,18 @@ export class SeedingPage implements OnInit {
       await this.api.updatePhaseSeeding(phaseId, buildSeedMapping(requested), true);
       const saved = await this.api.phaseSeeds(phaseId);
       if (!seedingApplied(saved, requested)) {
-        throw new Error('start.gg accepted the request but kept a different order. Reload and try again.');
+        throw new Error(this.i18n.t('seeding.orderMismatch'));
       }
       this.apply(saved);
-      this.toast.ok('Seeding saved');
+      this.toast.ok(this.i18n.t('seeding.saved'));
       await this.store.bracketChanged(
         phaseId,
         before == null ? null : rebuiltAfterReseed(before),
-        'Seeding saved — waiting for start.gg to rebuild the bracket with the new seeds…',
-        'Bracket updated with the new seeding',
+        this.i18n.t('seeding.savedWaiting'),
+        this.i18n.t('seeding.updated'),
       );
     } catch (e) {
-      const message = seedingErrorMessage(errorMessage(e));
+      const message = seedingErrorMessage(errorMessage(e), (key, params) => this.i18n.t(key, params));
       this.error.set(message);
       this.toast.error(message);
     } finally {
@@ -209,32 +208,37 @@ export class SeedingPage implements OnInit {
     this.busy.set(true);
     this.error.set(null);
     try {
-      this.progress.set('Loading the bracket…');
+      this.progress.set(this.i18n.t('seeding.loadingBracket'));
       const sets = await this.store.phaseSets(phase.id);
       this.progress.set(null);
       const ref = confirmBracketReset(this.dialog, { ...resetSummary(sets), phaseName: phase.name });
       if (!(await firstValueFrom(ref.closed))) return;
 
-      await resetPhase(this.api, phase, sets, (p) =>
-        this.progress.set(
-          p.step === 'sets'
-            ? `Resetting set ${p.done + 1} of ${p.total}…`
-            : 'Asking start.gg to rebuild the bracket…',
-        ),
+      await resetPhase(
+        this.api,
+        phase,
+        sets,
+        (p) =>
+          this.progress.set(
+            p.step === 'sets'
+              ? this.i18n.t('seeding.resettingSet', { done: p.done + 1, total: p.total })
+              : this.i18n.t('seeding.askingRebuild'),
+          ),
+        (key, params) => this.i18n.t(key, params),
       );
-      this.progress.set('Reloading…');
-      this.toast.ok('Bracket reset — reorder the seeds and save');
+      this.progress.set(this.i18n.t('seeding.reloading'));
+      this.toast.ok(this.i18n.t('seeding.resetOk'));
       await Promise.all([
         this.store.bracketChanged(
           phase.id,
           rebuiltAfterReset,
-          'Bracket reset — waiting for start.gg to rebuild it…',
-          'Bracket rebuilt from the current seeding',
+          this.i18n.t('seeding.resetWaiting'),
+          this.i18n.t('seeding.rebuilt'),
         ),
         this.load(String(phase.id)),
       ]);
     } catch (e) {
-      const message = `Bracket not reset: ${errorMessage(e)}`;
+      const message = this.i18n.t('seeding.notReset', { message: errorMessage(e) });
       this.error.set(message);
       this.toast.error(message);
     } finally {

@@ -3,6 +3,7 @@ import { BracketSet, EventDetail, Id, Phase } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
 import { AuthService } from '../../core/auth.service';
 import { eventApiSlug } from '../../core/bracket-url';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { ToastService } from '../../core/toast.service';
 import { errorMessage } from '../../shared/display';
 
@@ -16,6 +17,7 @@ export class EventStore {
   private readonly api = inject(StartggApi);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly tournamentSlug = signal('');
   readonly eventSlug = signal('');
@@ -46,9 +48,7 @@ export class EventStore {
 
   /** Distinguish missing token vs token that is not a tournament admin. */
   readOnlyReason(): string {
-    return this.auth.hasToken()
-      ? 'Your token is not an admin of this tournament.'
-      : 'View-only — add an API token in Settings to edit when you are an admin.';
+    return this.auth.hasToken() ? this.i18n.t('event.readOnlyToken') : this.i18n.t('event.readOnlyNoToken');
   }
 
   async load(tournamentSlug: string, eventSlug: string): Promise<void> {
@@ -59,7 +59,7 @@ export class EventStore {
     this.seededPhaseId.set(null);
     try {
       const event = await this.api.event({ slug: eventApiSlug(tournamentSlug, eventSlug) });
-      if (!event) throw new Error('Event not found. Check the URL or whether the event is published.');
+      if (!event) throw new Error(this.i18n.t('event.notFound'));
       this.event.set(event);
     } catch (e) {
       this.error.set(errorMessage(e));
@@ -139,11 +139,11 @@ export class EventStore {
         if (token !== this.syncToken) return;
         this.api.invalidate();
       }
-      const message = 'start.gg has not finished rebuilding the bracket yet. Try again in a moment.';
+      const message = this.i18n.t('event.syncTimeout');
       this.syncFailed.set(message);
       this.toast.error(message);
     } catch (e) {
-      const message = `Could not reload the bracket: ${errorMessage(e)}`;
+      const message = this.i18n.t('event.syncReloadFail', { message: errorMessage(e) });
       this.syncFailed.set(message);
       this.toast.error(message);
     } finally {

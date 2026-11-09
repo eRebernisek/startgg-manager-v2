@@ -1,7 +1,7 @@
 <header class="topbar">
   <div class="topbar-row">
     @if (navigation.canBack()) {
-      <button type="button" class="ghost back" (click)="navigation.goBack()" aria-label="Back">
+      <button type="button" class="ghost back" (click)="navigation.goBack()" [attr.aria-label]="'nav.back' | t">
         <span aria-hidden="true">←</span>
       </button>
     }
@@ -10,17 +10,101 @@
       <span class="brand-text">Manager</span>
     </a>
     <nav>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-      @if (auth.hasToken()) {
-        <a routerLink="/tournaments" routerLinkActive="active">My tournaments</a>
-      }
-      <a routerLink="/settings" routerLinkActive="active">
-        Settings
-        <span class="dot" [class.on]="auth.hasToken()" [title]="auth.hasToken() ? 'Token set' : 'No token'"></span>
+      <a
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [attr.aria-label]="'nav.home' | t"
+        [attr.title]="'nav.home' | t"
+      >
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M12 3.2 3.5 10.5h2.2V20h5.1v-5.2h2.4V20h5.1v-9.5h2.2L12 3.2z"
+          />
+        </svg>
+        <span class="nav-label">{{ 'nav.home' | t }}</span>
       </a>
+      @if (auth.hasToken()) {
+        <a
+          routerLink="/tournaments"
+          routerLinkActive="active"
+          [attr.aria-label]="'nav.tournaments' | t"
+          [attr.title]="'nav.tournaments' | t"
+        >
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              fill="currentColor"
+              d="M7 4h10v2.2h1.8A2.2 2.2 0 0 1 21 8.4v1.3A4.3 4.3 0 0 1 17.2 14H15.6A3.6 3.6 0 0 1 12.4 17v1.2H15v1.8H9V18.2h2.6V17A3.6 3.6 0 0 1 8.4 14H6.8A4.3 4.3 0 0 1 3 9.7V8.4A2.2 2.2 0 0 1 5.2 6.2H7V4zm0 3.8H5.2v1.9A2.5 2.5 0 0 0 7.4 12.2h.7A5.2 5.2 0 0 1 7 9.8V7.8zm10 0v2a5.2 5.2 0 0 1-1.1 2.4h.7a2.5 2.5 0 0 0 2.2-2.5V7.8H17z"
+            />
+          </svg>
+          <span class="nav-label">{{ 'nav.tournaments' | t }}</span>
+        </a>
+      }
+      <a
+        routerLink="/settings"
+        routerLinkActive="active"
+        [attr.aria-label]="'nav.settings' | t"
+        [attr.title]="'nav.settings' | t"
+      >
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M19.4 13a7.6 7.6 0 0 0 .1-1l2-1.5-1.9-3.3-2.4.5a7.7 7.7 0 0 0-1.7-1l-.4-2.4H9.9l-.4 2.4a7.7 7.7 0 0 0-1.7 1l-2.4-.5L3.5 10.5 5.5 12a7.6 7.6 0 0 0 0 2l-2 1.5 1.9 3.3 2.4-.5a7.7 7.7 0 0 0 1.7 1l.4 2.4h4.2l.4-2.4a7.7 7.7 0 0 0 1.7-1l2.4.5 1.9-3.3-2-1.5zM12 15.2A3.2 3.2 0 1 1 12 8.8a3.2 3.2 0 0 1 0 6.4z"
+          />
+        </svg>
+        <span class="nav-label">{{ 'nav.settings' | t }}</span>
+        <span
+          class="dot"
+          [class.on]="auth.hasToken()"
+          [attr.title]="auth.hasToken() ? ('nav.tokenSet' | t) : ('nav.tokenMissing' | t)"
+        ></span>
+      </a>
+      <div class="lang">
+        <button
+          type="button"
+          class="lang-btn"
+          [cdkMenuTriggerFor]="langMenu"
+          [attr.aria-label]="'nav.language' | t"
+        >
+          @if (i18n.lang() === 'pt') {
+            <span aria-hidden="true">🇧🇷</span>
+            <span class="lang-code">PT</span>
+          } @else {
+            <span aria-hidden="true">🇺🇸</span>
+            <span class="lang-code">EN</span>
+          }
+        </button>
+        <ng-template #langMenu>
+          <div class="lang-menu" cdkMenu>
+            <button
+              type="button"
+              cdkMenuItem
+              class="lang-option"
+              [class.active]="i18n.lang() === 'en'"
+              [attr.aria-label]="'nav.langEn' | t"
+              (cdkMenuItemTriggered)="setLang('en')"
+            >
+              <span aria-hidden="true">🇺🇸</span>
+              <span>{{ 'nav.english' | t }}</span>
+            </button>
+            <button
+              type="button"
+              cdkMenuItem
+              class="lang-option"
+              [class.active]="i18n.lang() === 'pt'"
+              [attr.aria-label]="'nav.langPt' | t"
+              (cdkMenuItemTriggered)="setLang('pt')"
+            >
+              <span aria-hidden="true">🇧🇷</span>
+              <span>{{ 'nav.portuguese' | t }}</span>
+            </button>
+          </div>
+        </ng-template>
+      </div>
     </nav>
   </div>
-  <nav class="crumbs" aria-label="Breadcrumb">
+  <nav class="crumbs" [attr.aria-label]="'nav.breadcrumb' | t">
     @for (crumb of breadcrumbs.trail(); track $index; let last = $last) {
       @if (crumb.url && !last) {
         <a [routerLink]="crumb.url" [replaceUrl]="breadcrumbs.samePath(crumb.url)">{{ crumb.label }}</a>

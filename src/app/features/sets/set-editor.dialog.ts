@@ -30,6 +30,9 @@ import {
   syncSetWinner,
   toGameData,
 } from '../../core/set-games';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { translateRoundName } from '../../core/i18n/round-names';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { EntrantChipComponent } from '../../shared/entrant-chip.component';
 import { askConfirm } from '../../shared/confirm.dialog';
 import { errorMessage, setStateLabel } from '../../shared/display';
@@ -57,7 +60,7 @@ export function initialChoice(set: BracketSet): { winner: Side | null; dq: boole
 
 @Component({
   selector: 'app-set-editor',
-  imports: [EntrantChipComponent],
+  imports: [EntrantChipComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './set-editor.dialog.html',
   styleUrl: './set-editor.dialog.scss',
@@ -70,6 +73,7 @@ export class SetEditorDialog implements OnInit {
   protected readonly ref = inject(DialogRef);
   private readonly setId = inject<Id>(DIALOG_DATA);
   private readonly navigation = inject(AppNavigation);
+  private readonly i18n = inject(I18nService);
   private readonly gamesList = viewChild<ElementRef<HTMLElement>>('gamesList');
   private readonly gamesActions = viewChild<ElementRef<HTMLElement>>('gamesActions');
 
@@ -91,8 +95,18 @@ export class SetEditorDialog implements OnInit {
   protected readonly notice = signal<string | null>(null);
 
   protected readonly sides: Side[] = [0, 1];
-  protected readonly stateLabel = setStateLabel;
   protected readonly iconUrl = characterIconUrl;
+
+  protected stateLabel(state: number): string {
+    this.i18n.lang();
+    return setStateLabel(state, (key, params) => this.i18n.t(key, params));
+  }
+
+  protected roundLabel(): string {
+    this.i18n.lang();
+    const raw = this.set()?.fullRoundText;
+    return translateRoundName(raw, (key, params) => this.i18n.t(key, params)) || this.i18n.t('setEditor.set');
+  }
 
   constructor() {
     const navigation = this.navigation;
@@ -249,7 +263,7 @@ export class SetEditorDialog implements OnInit {
   }
 
   protected shortName(entrant: Entrant | null): string {
-    if (!entrant?.name) return 'TBD';
+    if (!entrant?.name) return this.i18n.t('common.tbd');
     const sep = ' | ';
     const i = entrant.name.indexOf(sep);
     return (i >= 0 ? entrant.name.slice(i + sep.length) : entrant.name).trim() || entrant.name;
@@ -262,13 +276,13 @@ export class SetEditorDialog implements OnInit {
     if (!s || !e0 || !e1 || !this.canMutate()) return Promise.resolve();
     const gameData = toGameData(this.games(), e0.id, e1.id);
     if (!gameData.length && !this.dq()) {
-      this.error.set('Pick a game winner or characters before saving.');
+      this.error.set(this.i18n.t('setEditor.pickBeforeSave'));
       return Promise.resolve();
     }
     const plan = planSetScoreSave(s, { isDQ: this.dq(), gameData });
     if (plan.action !== 'update') return Promise.resolve();
 
-    return this.mutate('Games saved.', async () => {
+    return this.mutate(this.i18n.t('setEditor.gamesSaved'), async () => {
       if (s.state === SetState.Created || s.state === SetState.Ready || s.state === SetState.Called) {
         try {
           await this.api.markSetInProgress(this.setId);
@@ -291,7 +305,7 @@ export class SetEditorDialog implements OnInit {
     if (side === null) {
       const derived = deriveSetWinnerId(this.games(), e0.id, e1.id);
       if (derived == null) {
-        this.error.set('Pick a set winner, or mark enough game winners to decide the set.');
+        this.error.set(this.i18n.t('setEditor.pickWinner'));
         return Promise.resolve();
       }
       side = sameId(derived, e0.id) ? 0 : 1;
@@ -309,16 +323,16 @@ export class SetEditorDialog implements OnInit {
 
     if (plan.action === 'resetThenReport' && plan.warnDependent) {
       const ok = await askConfirm(this.dialog, {
-        title: 'Change winner?',
-        body: 'Changing the winner will reset this set and any dependent sets that already advanced.',
-        detail: 'Those later results will be cleared on start.gg. This cannot be undone.',
-        confirmLabel: 'Continue',
+        title: this.i18n.t('setEditor.changeWinnerTitle'),
+        body: this.i18n.t('setEditor.changeWinnerBody'),
+        detail: this.i18n.t('setEditor.changeWinnerDetail'),
+        confirmLabel: this.i18n.t('common.continue'),
         danger: true,
       });
       if (!ok) return Promise.resolve();
     }
 
-    return this.mutate('Result submitted.', async () => {
+    return this.mutate(this.i18n.t('setEditor.resultSubmitted'), async () => {
       if (plan.action === 'resetThenReport') {
         await this.api.resetSet(plan.setId, plan.resetDependentSets);
         return this.api.reportSet(plan.setId, plan.winnerId, plan.isDQ, plan.gameData);
@@ -331,17 +345,19 @@ export class SetEditorDialog implements OnInit {
   }
 
   protected markCalled(): Promise<void> {
-    return this.mutate('Set called.', () => this.api.markSetCalled(this.setId));
+    return this.mutate(this.i18n.t('setEditor.setCalled'), () => this.api.markSetCalled(this.setId));
   }
 
   protected markInProgress(): Promise<void> {
-    return this.mutate('Set marked in progress.', () => this.api.markSetInProgress(this.setId));
+    return this.mutate(this.i18n.t('setEditor.setInProgress'), () => this.api.markSetInProgress(this.setId));
   }
 
   protected async reset(): Promise<void> {
     const choice = await askResetSet(this.dialog);
     if (!choice) return;
-    return this.mutate('Set reset.', () => this.api.resetSet(this.setId, choice === 'dependents'));
+    return this.mutate(this.i18n.t('setEditor.setReset'), () =>
+      this.api.resetSet(this.setId, choice === 'dependents'),
+    );
   }
 
   private async loadCharacters(): Promise<void> {

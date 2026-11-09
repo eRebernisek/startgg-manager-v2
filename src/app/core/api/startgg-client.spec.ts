@@ -1,9 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AuthService } from '../auth.service';
+import { I18nService } from '../i18n/i18n.service';
+import { StorageService } from '../storage.service';
 import { WebSessionService } from '../web-session.service';
 import { DEFAULT_PUBLIC_PROXY_URL } from './public-proxy';
 import { OFFICIAL_ENDPOINT, PUBLIC_ENDPOINT_WEB, StartggClient, StartggError } from './startgg-client';
+
+const memoryStorage = {
+  get: async () => null as string | null,
+  set: async () => undefined,
+  remove: async () => undefined,
+};
 
 /** Body start.gg returned live when reseeding a started bracket (HTTP 200). */
 const STARTED_POOLS_RESPONSE = {
@@ -35,6 +43,8 @@ describe('StartggClient', () => {
       providers: [
         { provide: AuthService, useValue: { token, notifyAuthError } },
         { provide: WebSessionService, useValue: { proxyUrl } },
+        { provide: StorageService, useValue: memoryStorage },
+        I18nService,
       ],
     });
     client = TestBed.inject(StartggClient);

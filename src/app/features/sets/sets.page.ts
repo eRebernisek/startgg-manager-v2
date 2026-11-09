@@ -3,6 +3,9 @@ import { ChangeDetectionStrategy, Component, Injector, effect, inject, signal, u
 import { FormsModule } from '@angular/forms';
 import { BracketSet, SetState } from '../../core/api/models';
 import { StartggApi } from '../../core/api/startgg-api.service';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { translateRoundName } from '../../core/i18n/round-names';
+import { TPipe } from '../../core/i18n/t.pipe';
 import { errorMessage, setStateLabel } from '../../shared/display';
 import { EventStore } from '../event/event.store';
 import { SetBoxComponent } from './set-box.component';
@@ -12,22 +15,22 @@ const PER_PAGE = 40;
 
 @Component({
   selector: 'app-sets-page',
-  imports: [FormsModule, SetBoxComponent],
+  imports: [FormsModule, SetBoxComponent, TPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="stack">
       <div class="row">
         <label class="field">
-          Filter
+          {{ 'common.filter' | t }}
           <select [ngModel]="filter()" (ngModelChange)="filter.set($event); reload()">
-            <option value="all">All</option>
-            <option value="live">In progress / called</option>
-            <option value="ready">Ready</option>
-            <option value="done">Completed</option>
+            <option value="all">{{ 'sets.filterAll' | t }}</option>
+            <option value="live">{{ 'sets.filterLive' | t }}</option>
+            <option value="ready">{{ 'sets.filterReady' | t }}</option>
+            <option value="done">{{ 'sets.filterDone' | t }}</option>
           </select>
         </label>
         <span class="spacer"></span>
-        <button type="button" class="sm" (click)="reload()" [disabled]="loading()">Refresh</button>
+        <button type="button" class="sm" (click)="reload()" [disabled]="loading()">{{ 'common.refresh' | t }}</button>
       </div>
 
       @if (error()) {
@@ -38,17 +41,17 @@ const PER_PAGE = 40;
         @for (s of sets(); track s.id) {
           <button type="button" class="set-wrap" (click)="open(s)">
             <div class="muted small meta">
-              {{ s.fullRoundText || s.identifier }}
+              {{ roundLabel(s) }}
               @if (s.phaseGroup?.displayIdentifier) {
                 · {{ s.phaseGroup!.displayIdentifier }}
               }
-              · {{ setStateLabel(s.state) }}
+              · {{ stateLabel(s.state) }}
             </div>
             <app-set-box [set]="s" />
           </button>
         } @empty {
           @if (!loading()) {
-            <p class="muted">No sets match this filter.</p>
+            <p class="muted">{{ 'sets.empty' | t }}</p>
           }
         }
       </div>
@@ -56,7 +59,7 @@ const PER_PAGE = 40;
       @if (loading()) {
         <div class="spinner"></div>
       } @else if (page() < totalPages()) {
-        <button type="button" (click)="loadMore()">Load more</button>
+        <button type="button" (click)="loadMore()">{{ 'common.loadMore' | t }}</button>
       }
     </div>
   `,
@@ -90,6 +93,7 @@ export class SetsPage {
   private readonly store = inject(EventStore);
   private readonly dialog = inject(Dialog);
   private readonly injector = inject(Injector);
+  protected readonly i18n = inject(I18nService);
 
   protected readonly sets = signal<BracketSet[]>([]);
   protected readonly page = signal(0);
@@ -97,7 +101,15 @@ export class SetsPage {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly filter = signal<'all' | 'live' | 'ready' | 'done'>('all');
-  protected readonly setStateLabel = setStateLabel;
+  protected stateLabel(state: number): string {
+    this.i18n.lang();
+    return setStateLabel(state, (key, params) => this.i18n.t(key, params));
+  }
+
+  protected roundLabel(s: BracketSet): string {
+    this.i18n.lang();
+    return translateRoundName(s.fullRoundText, (key, params) => this.i18n.t(key, params)) || s.identifier || '';
+  }
   private loadToken = 0;
 
   constructor() {
